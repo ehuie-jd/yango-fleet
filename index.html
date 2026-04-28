@@ -37,12 +37,13 @@
             .no-print { display: none !important; }
             .gradient-bg { background: white; }
             * { color: black !important; text-shadow: none !important; }
+            .print-text-black { color: black !important; }
         }
     </style>
 </head>
 <body class="gradient-bg text-gray-100 min-h-screen relative">
 
-    <!-- ================= ÉCRAN DE CONNEXION (Sécurisé par Email) ================= -->
+    <!-- ================= ÉCRAN DE CONNEXION ================= -->
     <div id="loginScreen" class="absolute inset-0 z-50 flex items-center justify-center bg-gray-900/95 backdrop-blur-md">
         <div class="glass rounded-2xl p-8 max-w-sm w-full border border-gray-700/50 slide-in text-center">
             <div class="w-16 h-16 bg-yango-yellow rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-yellow-500/20">
@@ -106,6 +107,12 @@
                 <button onclick="showSection('finance')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all">
                     <i class="fas fa-wallet w-5"></i><span class="font-medium">Finances & Dépenses</span>
                 </button>
+                <button onclick="showSection('parts')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all">
+                    <i class="fas fa-cogs w-5"></i><span class="font-medium">Pièces & Fournisseurs</span>
+                </button>
+                <button onclick="showSection('reports')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all">
+                    <i class="fas fa-chart-pie w-5"></i><span class="font-medium">Rapports & RH</span>
+                </button>
                 <button id="adminNavBtn" onclick="showSection('admin')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all hidden">
                     <i class="fas fa-users-cog w-5"></i><span class="font-medium">Administration</span>
                 </button>
@@ -161,7 +168,7 @@
                             <i class="fas fa-exclamation-triangle text-2xl text-red-400"></i>
                             <div>
                                 <h4 class="text-red-400 font-bold">Action Requise</h4>
-                                <p class="text-sm text-gray-300">Certains véhicules ont des documents expirés ou arrivant à expiration imminente.</p>
+                                <p class="text-sm text-gray-300">Certains véhicules nécessitent une attention (documents ou maintenance).</p>
                             </div>
                             <i class="fas fa-chevron-right ml-auto text-gray-400"></i>
                         </div>
@@ -267,8 +274,8 @@
                 <div id="documents" class="hidden space-y-6">
                     <div class="flex items-center justify-between">
                         <div>
-                            <h2 class="text-2xl font-bold">Administration & Échéances</h2>
-                            <p class="text-gray-400 text-sm mt-1">Gérez les assurances, visites techniques et patentes.</p>
+                            <h2 class="text-2xl font-bold">Administration & Alertes</h2>
+                            <p class="text-gray-400 text-sm mt-1">Gérez les assurances, visites techniques, patentes et alertes de maintenance.</p>
                         </div>
                     </div>
 
@@ -278,27 +285,48 @@
                             <div class="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center text-red-400 text-xl"><i class="fas fa-exclamation-triangle"></i></div>
                             <div>
                                 <h3 class="text-2xl font-bold text-red-400" id="docExpiredCount">0</h3>
-                                <p class="text-sm text-gray-400">Documents Expirés</p>
+                                <p class="text-sm text-gray-400">Alertes Critiques</p>
                             </div>
                         </div>
                         <div class="glass rounded-xl p-4 border border-orange-500/30 bg-orange-500/5 flex items-center gap-4">
                             <div class="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 text-xl"><i class="fas fa-bell"></i></div>
                             <div>
                                 <h3 class="text-2xl font-bold text-orange-400" id="docWarningCount">0</h3>
-                                <p class="text-sm text-gray-400">Expirant à J-30</p>
+                                <p class="text-sm text-gray-400">Alertes Proches (J-30 / 500km)</p>
                             </div>
                         </div>
                         <div class="glass rounded-xl p-4 border border-green-500/30 bg-green-500/5 flex items-center gap-4">
                             <div class="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 text-xl"><i class="fas fa-check"></i></div>
                             <div>
                                 <h3 class="text-2xl font-bold text-green-400" id="docOkCount">0</h3>
-                                <p class="text-sm text-gray-400">Documents à jour</p>
+                                <p class="text-sm text-gray-400">Éléments à jour</p>
                             </div>
                         </div>
                     </div>
 
+                    <!-- NOUVEAU : Suivi de Maintenance (Kilométrage) -->
+                    <h3 class="text-xl font-bold text-orange-400 mt-8 mb-4"><i class="fas fa-tools mr-2"></i>Alertes de Maintenance (Kilométrage)</h3>
+                    <div class="glass rounded-2xl overflow-hidden border border-gray-700/50">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left min-w-[800px]">
+                                <thead class="bg-white/5 border-b border-gray-700">
+                                    <tr>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Véhicule</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Dernier Kilométrage Connu</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Kilométrage Prochain Entretien</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Statut Maintenance</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="maintenanceTable" class="divide-y divide-gray-700/50">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <h3 class="text-xl font-bold text-white mt-8 mb-4"><i class="fas fa-car mr-2"></i>Documents Véhicules</h3>
-                    <!-- Tableau des Documents Véhicules -->
+                    <!-- Tableau des Documents Véhicules (Vignette ajoutée) -->
                     <div class="glass rounded-2xl overflow-hidden border border-gray-700/50">
                         <div class="overflow-x-auto">
                             <table class="w-full text-left min-w-[1000px]">
@@ -307,6 +335,7 @@
                                         <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Véhicule</th>
                                         <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Assurance</th>
                                         <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Visite Tech.</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Vignette</th>
                                         <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Patente / VTC</th>
                                         <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Taxe Mairie</th>
                                         <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Extincteur</th>
@@ -359,7 +388,7 @@
                                 <i class="fas fa-plus mr-1"></i>Recette
                             </button>
                             <button onclick="openModal('addExpense')" class="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg font-medium hover:bg-red-500/30 transition-colors shadow-sm">
-                                <i class="fas fa-minus mr-1"></i>Dépense
+                                <i class="fas fa-minus mr-1"></i>Dépense / Amende
                             </button>
                         </div>
                     </div>
@@ -372,7 +401,7 @@
                             <button onclick="switchFinanceTab('expenses')" id="tabExp" class="text-gray-400 hover:text-white pb-2 px-2 transition-all">Dépenses Uniquement</button>
                         </div>
                         
-                        <h3 class="font-bold text-lg mb-4 hidden print-only" style="color:black; display:none;">Extrait Financier - Yango Fleet</h3>
+                        <h3 class="font-bold text-lg mb-4 hidden print-only print-text-black" style="display:none;">Extrait Financier - Yango Fleet</h3>
 
                         <div class="overflow-x-auto">
                             <table class="w-full text-left text-sm min-w-[900px]" id="dataTable">
@@ -381,7 +410,7 @@
                                         <th class="px-4 py-3 text-gray-400 font-semibold">Date</th>
                                         <th class="px-4 py-3 text-gray-400 font-semibold">Type / Motif</th>
                                         <th class="px-4 py-3 text-gray-400 font-semibold">Véhicule</th>
-                                        <th class="px-4 py-3 text-gray-400 font-semibold">Chauffeur</th>
+                                        <th class="px-4 py-3 text-gray-400 font-semibold">Chauffeur/Agent</th>
                                         <th class="px-4 py-3 text-gray-400 font-semibold hidden lg:table-cell">Détails</th>
                                         <th class="px-4 py-3 font-bold text-white text-right">Impact Net</th>
                                         <th class="px-4 py-3 text-gray-400 text-center no-print">Actions</th>
@@ -391,6 +420,125 @@
                                     <!-- Populé par JS (mélange de recettes et dépenses) -->
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PIÈCES & FOURNISSEURS -->
+                <div id="parts" class="hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-2xl font-bold">Pièces & Fournisseurs</h2>
+                            <p class="text-gray-400 text-sm mt-1">Gérez le stock de pièces et comparez les prix des fournisseurs.</p>
+                        </div>
+                        <button onclick="openModal('addPart')" class="px-4 py-2 bg-yango-yellow text-black rounded-xl font-medium hover:bg-yellow-400 transition-colors shadow-sm">
+                            <i class="fas fa-plus mr-1"></i>Ajouter Pièce
+                        </button>
+                    </div>
+                    
+                    <div class="glass rounded-2xl overflow-hidden border border-gray-700/50">
+                        <div class="p-4 border-b border-gray-700 bg-gray-800/50 flex gap-4 items-center">
+                            <i class="fas fa-search text-gray-400"></i>
+                            <input type="text" id="searchPart" onkeyup="filterParts()" placeholder="Rechercher le nom d'une pièce pour comparer les prix..." class="bg-transparent border-none text-white focus:outline-none w-full text-sm">
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left min-w-[900px]">
+                                <thead class="bg-white/5 border-b border-gray-700">
+                                    <tr>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Date</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Pièce & Marque</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Fournisseur & Contact</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Lieu / Adresse</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Prix U.</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Qté</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Total</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="partsTable" class="divide-y divide-gray-700/50">
+                                    <!-- Rempli par JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NOUVEAU MODULE : RAPPORTS & RH -->
+                <div id="reports" class="hidden space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+                        <div>
+                            <h2 class="text-2xl font-bold text-blue-400">Rapports, RH & Amendes</h2>
+                            <p class="text-gray-400 text-sm mt-1">Bilan analytique, suivi des performances chauffeurs et paiements salaires.</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="exportReportsCSV()" class="px-3 py-2 bg-blue-500/20 text-blue-400 border border-blue-500/50 rounded-lg font-medium hover:bg-blue-500/30 transition-colors shadow-sm text-sm" title="Exporter Excel">
+                                <i class="fas fa-file-excel mr-1"></i> Excel
+                            </button>
+                            <button onclick="exportReportsPDF()" class="px-3 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg font-medium hover:bg-red-500/30 transition-colors shadow-sm text-sm" title="Exporter PDF">
+                                <i class="fas fa-file-pdf mr-1"></i> PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="reportsArea" class="space-y-6">
+                        <h3 class="font-bold text-lg mb-4 hidden print-only print-text-black" style="display:none;">Bilan Analytique & RH - Yango Fleet</h3>
+                        
+                        <!-- Mini-Stats Rapports -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="glass rounded-xl p-4 border border-blue-500/30 flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 text-xl"><i class="fas fa-gas-pump"></i></div>
+                                <div><h3 class="text-2xl font-bold text-blue-400" id="repFuel">0 F</h3><p class="text-sm text-gray-400">Carburant Global</p></div>
+                            </div>
+                            <div class="glass rounded-xl p-4 border border-red-500/30 flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center text-red-400 text-xl"><i class="fas fa-camera"></i></div>
+                                <div><h3 class="text-2xl font-bold text-red-400" id="repFines">0 F</h3><p class="text-sm text-gray-400">Amendes & Infractions</p></div>
+                            </div>
+                            <div class="glass rounded-xl p-4 border border-purple-500/30 flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 text-xl"><i class="fas fa-users"></i></div>
+                                <div><h3 class="text-2xl font-bold text-purple-400" id="repSalaries">0 F</h3><p class="text-sm text-gray-400">Salaires / Personnel</p></div>
+                            </div>
+                        </div>
+
+                        <!-- Top & Worst Chauffeurs -->
+                        <div class="glass rounded-2xl overflow-hidden border border-gray-700/50 p-4">
+                            <h3 class="text-lg font-bold mb-4 text-yango-yellow"><i class="fas fa-trophy mr-2"></i>Performance des Chauffeurs</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="bg-white/5 border-b border-gray-700">
+                                        <tr>
+                                            <th class="px-4 py-2 text-gray-400">Rang</th>
+                                            <th class="px-4 py-2 text-gray-400">Chauffeur</th>
+                                            <th class="px-4 py-2 text-gray-400">Recettes Générées</th>
+                                            <th class="px-4 py-2 text-gray-400">Score Fiabilité</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="repDriversPerf" class="divide-y divide-gray-700/50">
+                                        <!-- Populated via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tables Amendes & Salaires -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="glass rounded-2xl overflow-hidden border border-gray-700/50 p-4">
+                                <h3 class="text-lg font-bold mb-4 text-red-400"><i class="fas fa-ticket-alt mr-2"></i>Registre des Amendes</h3>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left text-xs">
+                                        <thead class="bg-white/5 border-b border-gray-700"><tr><th class="px-2 py-2">Date</th><th class="px-2 py-2">Chauffeur</th><th class="px-2 py-2">Montant</th></tr></thead>
+                                        <tbody id="repFinesTable" class="divide-y divide-gray-700/50"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="glass rounded-2xl overflow-hidden border border-gray-700/50 p-4">
+                                <h3 class="text-lg font-bold mb-4 text-purple-400"><i class="fas fa-hand-holding-usd mr-2"></i>Paiements Salaires & RH</h3>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left text-xs">
+                                        <thead class="bg-white/5 border-b border-gray-700"><tr><th class="px-2 py-2">Date</th><th class="px-2 py-2">Bénéficiaire / Motif</th><th class="px-2 py-2">Montant</th></tr></thead>
+                                        <tbody id="repSalariesTable" class="divide-y divide-gray-700/50"></tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -442,7 +590,6 @@
         // 1. IMPORTATION FIREBASE & CONFIGURATION
         // ==========================================
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // Importations sécurisées de Firebase Auth
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -460,11 +607,9 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        // Application secondaire pour créer des utilisateurs sans déconnecter l'admin
         const secondaryApp = initializeApp(firebaseConfig, "Secondary");
         const secondaryAuth = getAuth(secondaryApp);
         
-        // Identifiant unique ORIGINAL préservé pour conserver vos données existantes
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
         // Variables d'état Globales
@@ -474,6 +619,7 @@
         let drivers = [];
         let revenues = []; 
         let expenses = []; 
+        let parts = []; 
         
         let loggedInUser = null;
         let currentOwnerFilter = 'all'; 
@@ -484,7 +630,6 @@
         let chartTopVehicles = null;
         let chartExpenses = null;
 
-        // Utilitaires UI
         window.customAlert = (message, isError = false) => {
             const overlay = document.createElement('div');
             overlay.className = "fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[200] p-4 slide-in";
@@ -515,10 +660,6 @@
             document.getElementById('btnConfirm').onclick = () => { document.body.removeChild(overlay); callback(); };
         };
 
-        // ==========================================
-        // 2. AUTHENTIFICATION SÉCURISÉE (EMAIL/MDP)
-        // ==========================================
-        
         window.handleLogin = async (e) => {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value.trim();
@@ -530,9 +671,7 @@
             btnText.innerHTML = '<div class="loader border-black border-t-transparent"></div>';
 
             try {
-                // Connexion via Firebase Auth
                 await signInWithEmailAndPassword(auth, email, pass);
-                // La suite est gérée par onAuthStateChanged
             } catch (error) {
                 console.error("Auth Error:", error);
                 btnText.textContent = 'Se connecter';
@@ -558,12 +697,8 @@
             onSnapshot(getColRef('users'), async (snapshot) => {
                 users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
-                // MIGRATION / INITIALISATION EN DOUCEUR
-                // On essaie de trouver l'utilisateur par son UID Firebase ou par son email
                 loggedInUser = users.find(u => u.id === fbUser.uid || (u.email && u.email === fbUser.email));
                 
-                // Si l'utilisateur n'est pas trouvé dans la base de données, MAIS que son email contient "admin",
-                // on lui crée automatiquement son profil administrateur pour lier Firebase Auth à la Base de Données
                 if (!loggedInUser && fbUser.email.toLowerCase().includes('admin')) {
                     const newAdmin = { email: fbUser.email, role: 'admin', name: 'Administrateur Principal' };
                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', fbUser.uid), newAdmin);
@@ -573,8 +708,6 @@
                 if (loggedInUser) {
                     if (loggedInUser.role === 'admin') updateAdminDropdown();
                     updateUI();
-                    
-                    // Si on était sur l'écran de login, on lance l'app
                     if(document.getElementById('mainApp').classList.contains('hidden')) {
                         launchApp();
                     }
@@ -584,11 +717,11 @@
                 }
             }, console.error);
 
-            // On maintient l'écoute de toutes les autres collections exactement comme avant
             onSnapshot(getColRef('vehicles'), (snapshot) => { vehicles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) { updateUI(); updateCharts(); } }, console.error);
             onSnapshot(getColRef('drivers'), (snapshot) => { drivers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) updateUI(); }, console.error);
             onSnapshot(getColRef('revenues'), (snapshot) => { revenues = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) { updateUI(); updateCharts(); } }, console.error);
             onSnapshot(getColRef('expenses'), (snapshot) => { expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) { updateUI(); updateCharts(); } }, console.error);
+            onSnapshot(getColRef('parts'), (snapshot) => { parts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) updateUI(); }, console.error); 
         }
 
         onAuthStateChanged(auth, (user) => { 
@@ -596,7 +729,6 @@
             if (user) {
                 setupListeners(); 
             } else {
-                // Déconnecté
                 document.getElementById('mainApp').classList.add('hidden');
                 document.getElementById('loginScreen').classList.remove('hidden');
             }
@@ -631,9 +763,6 @@
             if(!chartFinance) initCharts(); else updateCharts();
         }
 
-        // ==========================================
-        // 4. NAVIGATION ET FILTRES
-        // ==========================================
         window.changeOwnerFilter = (ownerId) => {
             if(loggedInUser.role !== 'admin') return;
             currentOwnerFilter = ownerId;
@@ -647,7 +776,11 @@
         }
 
         window.showSection = (section) => {
-            document.querySelectorAll('#contentArea > div').forEach(div => div.classList.add('hidden'));
+            document.querySelectorAll('#contentArea > div[id]').forEach(div => {
+                if (['dashboard', 'vehicles', 'drivers', 'documents', 'finance', 'parts', 'reports', 'admin'].includes(div.id)) {
+                    div.classList.add('hidden');
+                }
+            });
             document.getElementById(section).classList.remove('hidden');
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.classList.remove('bg-yango-yellow/10', 'text-yango-yellow', 'border-yango-yellow/20');
@@ -666,11 +799,143 @@
             updateUI(); 
         };
 
-        window.exportToCSV = () => { /* ... (Code export CSV conservé à l'identique) ... */ };
-        window.exportToPDF = () => { /* ... (Code export PDF conservé à l'identique) ... */ };
+        // Fonction d'exportation pour l'onglet Opérations Financières
+        window.exportToCSV = () => {
+            if(!fbUser) return;
+            const fRevs = currentOwnerFilter === 'all' ? revenues : revenues.filter(r => r.ownerId === currentOwnerFilter);
+            const fExps = currentOwnerFilter === 'all' ? expenses : expenses.filter(e => e.ownerId === currentOwnerFilter);
+            let items = [];
+            
+            if(currentLedgerTab === 'all' || currentLedgerTab === 'revenues') fRevs.forEach(r => items.push({...r, _type: 'rev'}));
+            if(currentLedgerTab === 'all' || currentLedgerTab === 'expenses') fExps.forEach(e => items.push({...e, _type: 'exp'}));
+            items.sort((a,b) => b.timestamp - a.timestamp);
+
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
+            csvContent += "Date;Type / Motif;Vehicule;Chauffeur/Agent;Details;Impact Net (FCFA)\n";
+
+            items.forEach(item => {
+                let date = item.date || "-";
+                let motif = item._type === 'rev' ? (item.motif || "-") : (item.type || "-");
+                let veh = item.vehicle || "-";
+                
+                let driverName = "-";
+                if(item.driverId) {
+                    const d = drivers.find(drv => drv.id === item.driverId);
+                    if(d) driverName = `${d.firstName} ${d.lastName}`;
+                }
+                
+                let details = item._type === 'rev' ? (item.expected ? `Attendu: ${item.expected}` : '-') : (item.description || '-');
+                let impact = item._type === 'rev' ? `+${item.brut}` : `-${item.amount}`;
+
+                let row = [date, motif, veh, driverName, details, impact].map(val => `"${String(val).replace(/"/g, '""')}"`).join(";");
+                csvContent += row + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Yango_Finances_${new Date().toLocaleDateString('fr-FR').replace(/\//g,'-')}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        window.exportToPDF = () => {
+            const element = document.getElementById('ledgerExportArea');
+            const printHeader = element.querySelector('h3.print-only');
+            
+            const originalBg = element.style.background;
+            element.style.background = '#ffffff';
+            element.style.color = '#000000';
+            if(printHeader) printHeader.style.display = 'block';
+            
+            const noPrintElements = element.querySelectorAll('.no-print');
+            noPrintElements.forEach(el => el.style.display = 'none');
+
+            const opt = {
+              margin:       10,
+              filename:     `Yango_Finances_${new Date().toLocaleDateString('fr-FR').replace(/\//g,'-')}.pdf`,
+              image:        { type: 'jpeg', quality: 0.98 },
+              html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+              jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+            };
+
+            const btnText = document.querySelector('button[title="Exporter PDF"]').innerHTML;
+            document.querySelector('button[title="Exporter PDF"]').innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Génération...';
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                element.style.background = originalBg;
+                element.style.color = '';
+                if(printHeader) printHeader.style.display = 'none';
+                noPrintElements.forEach(el => el.style.display = '');
+                document.querySelector('button[title="Exporter PDF"]').innerHTML = btnText;
+            });
+        };
+
+        // Fonctions d'exportation pour l'onglet Rapports & RH
+        window.exportReportsCSV = () => {
+            if(!fbUser) return;
+            const fExps = currentOwnerFilter === 'all' ? expenses : expenses.filter(e => e.ownerId === currentOwnerFilter);
+            
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
+            csvContent += "Type;Date;Bénéficiaire / Chauffeur;Montant (FCFA);Motif / Détails\n";
+
+            // Amendes
+            fExps.filter(e => e.type === "Amende / Police").forEach(item => {
+                let dName = "-";
+                if(item.driverId) { const d = drivers.find(drv => drv.id === item.driverId); if(d) dName = `${d.firstName} ${d.lastName}`; }
+                let row = ["AMENDE", item.date || "-", dName, `-${item.amount}`, item.description || "-"].map(val => `"${String(val).replace(/"/g, '""')}"`).join(";");
+                csvContent += row + "\n";
+            });
+
+            // Salaires
+            fExps.filter(e => e.type === "Salaire / RH").forEach(item => {
+                let dName = "-";
+                if(item.driverId) { const d = drivers.find(drv => drv.id === item.driverId); if(d) dName = `${d.firstName} ${d.lastName}`; }
+                let row = ["SALAIRE", item.date || "-", dName, `-${item.amount}`, item.description || "-"].map(val => `"${String(val).replace(/"/g, '""')}"`).join(";");
+                csvContent += row + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Yango_RH_Amendes_${new Date().toLocaleDateString('fr-FR').replace(/\//g,'-')}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        window.exportReportsPDF = () => {
+            const element = document.getElementById('reportsArea');
+            const printHeader = element.querySelector('h3.print-only');
+            
+            const originalBg = element.style.background;
+            element.style.background = '#ffffff';
+            element.style.color = '#000000';
+            if(printHeader) printHeader.style.display = 'block';
+            
+            const opt = {
+              margin:       10,
+              filename:     `Yango_RH_Amendes_${new Date().toLocaleDateString('fr-FR').replace(/\//g,'-')}.pdf`,
+              image:        { type: 'jpeg', quality: 0.98 },
+              html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+              jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+            };
+
+            const btnHTML = document.querySelector('button[title="Exporter PDF"]').innerHTML;
+            document.querySelector('button[title="Exporter PDF"]').innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Génération...';
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                element.style.background = originalBg;
+                element.style.color = '';
+                if(printHeader) printHeader.style.display = 'none';
+                document.querySelector('button[title="Exporter PDF"]').innerHTML = btnHTML;
+            });
+        };
+
 
         // ==========================================
-        // 5. GESTION DES MODALES (AVEC NOUVEAUTÉS)
+        // 5. GESTION DES MODALES
         // ==========================================
         window.openModal = (type, dataId = null) => {
             const modal = document.getElementById('modal');
@@ -711,29 +976,75 @@
                         <button type="submit" class="w-full py-3 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 mt-4">Enregistrer Recette</button>
                     </form>
                 `;
+            } else if (type === 'addPart') {
+                title.innerHTML = '<i class="fas fa-cogs text-blue-400 mr-2"></i> Annuaire des Pièces & Prix';
+                content.innerHTML = `
+                    <form onsubmit="savePart(event)" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="text-xs text-gray-400">Date d'achat / Relevé</label><input type="date" id="pDate" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white" value="${new Date().toISOString().split('T')[0]}"></div>
+                            <div><label class="text-xs text-gray-400">Nom de la pièce</label><input type="text" id="pName" placeholder="Ex: Plaquettes de frein" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        </div>
+                        
+                        <div><label class="text-xs text-gray-400">Marque de la pièce (Optionnel)</label><input type="text" id="pBrand" placeholder="Ex: Toyota, Bosch, Adaptable..." class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        
+                        <div class="p-3 border border-gray-700 bg-gray-800/50 rounded-lg space-y-3">
+                            <h4 class="text-xs text-yango-yellow font-bold uppercase"><i class="fas fa-store mr-1"></i> Infos du Fournisseur</h4>
+                            <div><label class="text-xs text-gray-400">Nom du Magasin / Fournisseur</label><input type="text" id="pSupplier" required class="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white"></div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div><label class="text-xs text-gray-400">Téléphone (Optionnel)</label><input type="text" id="pPhone" placeholder="Ex: 0102030405" class="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white"></div>
+                                <div><label class="text-xs text-gray-400">Lieu / Commune</label><input type="text" id="pLocation" placeholder="Ex: Adjamé Renault" class="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white"></div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="text-xs text-gray-400">Prix Unitaire (FCFA)</label><input type="number" id="pPrice" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white font-bold text-blue-400"></div>
+                            <div><label class="text-xs text-gray-400">Quantité (Mettre 1 si juste pour info)</label><input type="number" id="pQty" required value="1" min="1" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        </div>
+                        <button type="submit" class="w-full py-3 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 mt-4">Enregistrer dans la base</button>
+                    </form>
+                `;
             } else if (type === 'addExpense') {
-                title.innerHTML = '<i class="fas fa-minus-circle text-red-400 mr-2"></i> Ajouter Dépense / Entretien';
+                title.innerHTML = '<i class="fas fa-minus-circle text-red-400 mr-2"></i> Dépense, Amende ou Salaire';
                 content.innerHTML = `
                     <form onsubmit="saveExpense(event)" class="space-y-4">
                         <div><label class="text-xs text-gray-400">Date</label><input type="date" id="expDate" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        <div><label class="text-xs text-gray-400">Véhicule concerné</label><select id="expVehicle" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"><option value="">Aucun véhicule</option>${vehOpts}</select></div>
+                        
                         <div>
                             <label class="text-xs text-gray-400">Catégorie</label>
-                            <select id="expType" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                            <select id="expType" required class="w-full px-3 py-2 bg-blue-900 border border-blue-600 rounded-lg text-sm text-white">
                                 <option value="Carburant">Carburant</option>
                                 <option value="Entretien / Vidange">Entretien / Vidange</option>
                                 <option value="Pièces de rechange">Pièces de rechange</option>
                                 <option value="Assurance / Visite">Assurance / Visite</option>
-                                <option value="Amende / Police">Amende / Police</option>
+                                <option value="Amende / Police" class="text-red-300 font-bold">Amende / Infraction (Lier chauffeur en bas)</option>
+                                <option value="Salaire / RH" class="text-purple-300 font-bold">Paiement Salaire / RH (Lier chauffeur en bas)</option>
                                 <option value="Autre">Autre</option>
                             </select>
                         </div>
-                        <div><label class="text-xs text-gray-400">Montant (FCFA)</label><input type="number" id="expAmount" required placeholder="Ex: 25000" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-red-400 font-bold"></div>
-                        <div><label class="text-xs text-gray-400">Description / Note</label><input type="text" id="expDesc" placeholder="Détails (ex: Changement plaquettes frein)" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
                         
-                        <div class="p-3 border border-orange-500/30 bg-orange-500/5 rounded-lg">
-                            <label class="text-xs text-orange-400">Planifier prochaine intervention (Optionnel)</label>
-                            <input type="date" id="expNextVisit" class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white">
+                        <div><label class="text-xs text-gray-400">Montant (FCFA)</label><input type="number" id="expAmount" required placeholder="Ex: 25000" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-red-400 font-bold"></div>
+                        <div><label class="text-xs text-gray-400">Description / Note</label><input type="text" id="expDesc" placeholder="Détails" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        
+                        <div class="border-t border-gray-700 pt-3 mt-2 space-y-3">
+                            <p class="text-xs text-gray-400 font-bold uppercase">Liaisons et Suivi (Optionnel)</p>
+                            <div>
+                                <label class="text-xs text-gray-400">Véhicule concerné</label>
+                                <select id="expVehicle" class="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white"><option value="">Aucun véhicule</option>${vehOpts}</select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-400">Chauffeur lié (Obligatoire pour Amendes/Salaires)</label>
+                                <select id="expDriver" class="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white"><option value="">Aucun chauffeur</option>${driverOpts}</select>
+                            </div>
+                            
+                            <!-- MODULE DE MAINTENANCE -->
+                            <div class="p-3 border border-orange-500/30 bg-orange-500/5 rounded-lg">
+                                <label class="text-xs font-bold text-orange-400"><i class="fas fa-tools mr-1"></i> Suivi Maintenance (Vidange / Entretien)</label>
+                                <div class="grid grid-cols-2 gap-2 mt-2">
+                                    <div><label class="text-[10px] text-gray-400">Kilométrage Actuel</label><input type="number" id="expMileage" placeholder="Ex: 125000" class="w-full px-2 py-1 bg-gray-900 border border-gray-700 rounded-lg text-xs text-white"></div>
+                                    <div><label class="text-[10px] text-gray-400">Prochain Entretien (Km)</label><input type="number" id="expNextMileage" placeholder="Ex: 135000" class="w-full px-2 py-1 bg-gray-900 border border-gray-700 rounded-lg text-xs text-white"></div>
+                                </div>
+                                <div class="mt-2"><label class="text-[10px] text-gray-400">Ou planifier par date</label><input type="date" id="expNextVisit" class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-xs text-white"></div>
+                            </div>
                         </div>
 
                         <button type="submit" class="w-full py-3 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 mt-4">Enregistrer Dépense</button>
@@ -750,6 +1061,12 @@
                         <div><label class="text-xs text-gray-400">Assigner un chauffeur (Optionnel)</label>
                         <select id="vAssign" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"><option value="">Non assigné</option>${driverOpts}</select></div>
 
+                        <!-- Maintenance Base -->
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="text-xs text-gray-400">Kilométrage Actuel</label><input type="number" id="vMileage" placeholder="ex: 50000" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
+                            <div><label class="text-xs text-gray-400">Prochain Entretien (Km)</label><input type="number" id="vNextMileage" placeholder="ex: 60000" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
+                        </div>
+
                         <div class="border-t border-gray-700 pt-3 mt-2">
                             <p class="text-xs text-yango-yellow font-bold mb-2 uppercase">Échéances Administratives (Optionnel)</p>
                             <div class="grid grid-cols-2 gap-2 mb-2">
@@ -757,10 +1074,13 @@
                                 <div><label class="text-xs text-gray-400">Visite Tech.</label><input type="date" id="vTech" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
                             </div>
                             <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div><label class="text-xs text-gray-400">Vignette</label><input type="date" id="vVignette" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
                                 <div><label class="text-xs text-gray-400">Patente / VTC</label><input type="date" id="vPat" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
-                                <div><label class="text-xs text-gray-400">Taxe Mairie</label><input type="date" id="vTax" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
                             </div>
-                            <div><label class="text-xs text-gray-400">Extincteur</label><input type="date" id="vExt" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div><label class="text-xs text-gray-400">Taxe Mairie</label><input type="date" id="vTax" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
+                                <div><label class="text-xs text-gray-400">Extincteur</label><input type="date" id="vExt" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
+                            </div>
                         </div>
                         
                         <select id="vStatus" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white mt-3">
@@ -810,10 +1130,13 @@
                             <div><label class="text-xs text-gray-400">Visite Technique</label><input type="date" id="editTech" value="${vehicle.techVisitExpiry || ''}" class="w-full mt-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white"></div>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
+                            <div><label class="text-xs text-gray-400">Vignette</label><input type="date" id="editVignette" value="${vehicle.vignetteExpiry || ''}" class="w-full mt-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white"></div>
                             <div><label class="text-xs text-gray-400">Patente / Carte VTC</label><input type="date" id="editPat" value="${vehicle.licenseExpiry || ''}" class="w-full mt-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white"></div>
-                            <div><label class="text-xs text-gray-400">Taxe Mairie</label><input type="date" id="editTax" value="${vehicle.cityTaxExpiry || ''}" class="w-full mt-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white"></div>
                         </div>
-                        <div><label class="text-xs text-gray-400">Extincteur</label><input type="date" id="editExt" value="${vehicle.extinguisherExpiry || ''}" class="w-full mt-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white"></div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="text-xs text-gray-400">Taxe Mairie</label><input type="date" id="editTax" value="${vehicle.cityTaxExpiry || ''}" class="w-full mt-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white"></div>
+                            <div><label class="text-xs text-gray-400">Extincteur</label><input type="date" id="editExt" value="${vehicle.extinguisherExpiry || ''}" class="w-full mt-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white"></div>
+                        </div>
                         <button type="submit" class="w-full py-3 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600">Enregistrer les Échéances</button>
                     </form>
                 `;
@@ -827,7 +1150,6 @@
                     </form>
                 `;
             } else if (type === 'addOwner') {
-                // Modification : Interface adaptée à Firebase Auth (Email/Mot de passe)
                 title.textContent = 'Ajouter un Propriétaire (Sécurisé)';
                 content.innerHTML = `
                     <form onsubmit="saveOwnerSecure(event)" class="space-y-4">
@@ -853,6 +1175,10 @@
                         <select id="editVAssign" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
                             <option value="">Non assigné</option>${driverOpts}
                         </select></div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="text-xs text-gray-400">Kilométrage Actuel</label><input type="number" id="editVMileage" value="${vehicle.currentMileage || ''}" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
+                            <div><label class="text-xs text-gray-400">Prochain Entretien</label><input type="number" id="editVNextMileage" value="${vehicle.nextMaintenanceMileage || ''}" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
+                        </div>
                         <select id="editVStatus" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
                             <option value="actif" ${vehicle.status === 'actif' ? 'selected' : ''}>Actif (En Course)</option>
                             <option value="inactif" ${vehicle.status === 'inactif' ? 'selected' : ''}>Inactif / En Attente</option>
@@ -905,11 +1231,10 @@
         };
 
         // ==========================================
-        // 6. SAUVEGARDES FIREBASE (CRUD Restauration + Nouveautés)
+        // 6. SAUVEGARDES FIREBASE
         // ==========================================
         function resolveOwnerId() { return loggedInUser.role === 'admin' ? document.getElementById('formOwnerId').value : loggedInUser.id; }
 
-        // Utilisation de la secondaryApp pour ne pas déconnecter l'admin lors de la création d'un owner
         window.saveOwnerSecure = async (e) => {
             e.preventDefault();
             if(!fbUser || loggedInUser.role !== 'admin') return;
@@ -926,7 +1251,6 @@
                 const newCred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
                 await secondaryAuth.signOut(); 
                 
-                // On stocke le nouvel utilisateur dans la base de données avec son UID comme ID de document
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', newCred.user.uid), {
                     email: email,
                     name: name,
@@ -954,8 +1278,11 @@
             e.preventDefault(); if(!fbUser) return; const ownerId = resolveOwnerId(); if(!ownerId) return customAlert("Propriétaire non défini.", true);
             const data = {
                 ownerId: ownerId, brand: document.getElementById('vBrand').value, plate: document.getElementById('vPlate').value, status: document.getElementById('vStatus').value,
-                assignedDriverId: document.getElementById('vAssign').value || null, // NOUVEAU
+                assignedDriverId: document.getElementById('vAssign').value || null, 
+                currentMileage: parseInt(document.getElementById('vMileage').value) || 0,
+                nextMaintenanceMileage: parseInt(document.getElementById('vNextMileage').value) || 0,
                 insuranceExpiry: document.getElementById('vIns').value || null, techVisitExpiry: document.getElementById('vTech').value || null,
+                vignetteExpiry: document.getElementById('vVignette').value || null,
                 licenseExpiry: document.getElementById('vPat').value || null, cityTaxExpiry: document.getElementById('vTax').value || null,
                 extinguisherExpiry: document.getElementById('vExt').value || null, timestamp: new Date().getTime()
             };
@@ -964,13 +1291,27 @@
 
         window.updateVehicle = async (e, id) => {
             e.preventDefault(); if(!fbUser) return;
-            const data = { brand: document.getElementById('editVBrand').value, plate: document.getElementById('editVPlate').value, status: document.getElementById('editVStatus').value, assignedDriverId: document.getElementById('editVAssign').value || null };
+            const data = { 
+                brand: document.getElementById('editVBrand').value, 
+                plate: document.getElementById('editVPlate').value, 
+                status: document.getElementById('editVStatus').value, 
+                assignedDriverId: document.getElementById('editVAssign').value || null,
+                currentMileage: parseInt(document.getElementById('editVMileage').value) || 0,
+                nextMaintenanceMileage: parseInt(document.getElementById('editVNextMileage').value) || 0
+            };
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', id), data); closeModal();
         };
 
         window.updateDocuments = async (e, id) => {
             e.preventDefault(); if(!fbUser) return;
-            const data = { insuranceExpiry: document.getElementById('editIns').value || null, techVisitExpiry: document.getElementById('editTech').value || null, licenseExpiry: document.getElementById('editPat').value || null, cityTaxExpiry: document.getElementById('editTax').value || null, extinguisherExpiry: document.getElementById('editExt').value || null };
+            const data = { 
+                insuranceExpiry: document.getElementById('editIns').value || null, 
+                techVisitExpiry: document.getElementById('editTech').value || null, 
+                vignetteExpiry: document.getElementById('editVignette').value || null, 
+                licenseExpiry: document.getElementById('editPat').value || null, 
+                cityTaxExpiry: document.getElementById('editTax').value || null, 
+                extinguisherExpiry: document.getElementById('editExt').value || null 
+            };
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', id), data); closeModal(); customAlert("Dates mises à jour !");
         };
 
@@ -983,7 +1324,7 @@
             const data = {
                 ownerId: ownerId, lastName: document.getElementById('dLastName').value, firstName: document.getElementById('dFirstName').value,
                 address: document.getElementById('dAddress').value, phone: document.getElementById('dPhone').value,
-                dailyExpected: parseFloat(document.getElementById('dExpected').value) || null, // NOUVEAU
+                dailyExpected: parseFloat(document.getElementById('dExpected').value) || null,
                 idCard: document.getElementById('dIdCard').value, license: document.getElementById('dLicense').value,
                 medicalVisitExpiry: document.getElementById('dMed').value || null, status: "actif", timestamp: new Date().getTime()
             };
@@ -1042,13 +1383,31 @@
             const plate = document.getElementById('expVehicle').value;
             let ownerId = null;
             if(plate) { const veh = vehicles.find(v => v.plate === plate); if(veh) ownerId = veh.ownerId; }
+            
+            const driverId = document.getElementById('expDriver').value;
+            if(!ownerId && driverId) { const drv = drivers.find(d => d.id === driverId); if(drv) ownerId = drv.ownerId; }
+
             if(!ownerId) ownerId = (loggedInUser.role === 'admin') ? currentOwnerFilter : loggedInUser.id;
-            if(ownerId === 'all') return customAlert("Sélectionnez un propriétaire ou un véhicule.", true);
+            if(ownerId === 'all') return customAlert("Sélectionnez un propriétaire, véhicule ou chauffeur.", true);
+
+            const expMileage = parseInt(document.getElementById('expMileage').value);
+            const expNextMileage = parseInt(document.getElementById('expNextMileage').value);
+
+            // Mise à jour magique du kilométrage du véhicule
+            if (plate && expMileage) {
+                const veh = vehicles.find(v => v.plate === plate);
+                if (veh) {
+                    let updateData = { currentMileage: expMileage };
+                    if (expNextMileage) updateData.nextMaintenanceMileage = expNextMileage;
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', veh.id), updateData);
+                }
+            }
 
             const data = {
                 ownerId: ownerId,
                 date: document.getElementById('expDate').value,
                 vehicle: plate || "Non spécifié",
+                driverId: driverId || null,
                 type: document.getElementById('expType').value,
                 amount: parseFloat(document.getElementById('expAmount').value),
                 description: document.getElementById('expDesc').value,
@@ -1065,6 +1424,41 @@
             });
         };
 
+        window.savePart = async (e) => {
+            e.preventDefault(); if(!fbUser) return;
+            let ownerId = (loggedInUser.role === 'admin') ? currentOwnerFilter : loggedInUser.id;
+            if(ownerId === 'all') ownerId = loggedInUser.id; 
+            const price = parseFloat(document.getElementById('pPrice').value);
+            const qty = parseInt(document.getElementById('pQty').value);
+            const data = { 
+                ownerId: ownerId, 
+                date: document.getElementById('pDate').value, 
+                name: document.getElementById('pName').value, 
+                brand: document.getElementById('pBrand').value || '',
+                supplier: document.getElementById('pSupplier').value, 
+                phone: document.getElementById('pPhone').value || '',
+                location: document.getElementById('pLocation').value || '',
+                price: price, 
+                qty: qty, 
+                total: price * qty, 
+                timestamp: new Date().getTime() 
+            };
+            await addDoc(getColRef('parts'), data); closeModal();
+        };
+
+        window.deletePart = (id) => {
+            if(!fbUser) return; customConfirm("Supprimer cet enregistrement de pièce ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'parts', id)); });
+        };
+
+        window.filterParts = () => {
+            const term = document.getElementById('searchPart').value.toLowerCase();
+            const rows = document.getElementById('partsTable').getElementsByTagName('tr');
+            for(let i=0; i<rows.length; i++) {
+                const nameCol = rows[i].getElementsByTagName('td')[1];
+                if(nameCol) rows[i].style.display = (nameCol.textContent || nameCol.innerText).toLowerCase().indexOf(term) > -1 ? "" : "none";
+            }
+        };
+
         // ==========================================
         // 7. GESTION DES DATES & ALERTES DOCUMENTS
         // ==========================================
@@ -1078,7 +1472,7 @@
         }
 
         // ==========================================
-        // 8. MISE À JOUR DE L'INTERFACE (UI avec Score & WhatsApp)
+        // 8. MISE À JOUR DE L'INTERFACE
         // ==========================================
         function getOwnerName(id) { const u = users.find(u => u.id === id); return u ? u.name : 'Inconnu'; }
         
@@ -1115,21 +1509,49 @@
             let expiredCount = 0; let warningCount = 0; let validCount = 0;
             const docsHtml = fVehicles.map(v => {
                 const insSt = getDocStatus(v.insuranceExpiry); const techSt = getDocStatus(v.techVisitExpiry);
-                const patSt = getDocStatus(v.licenseExpiry); const taxSt = getDocStatus(v.cityTaxExpiry); const extSt = getDocStatus(v.extinguisherExpiry);
-                [insSt.state, techSt.state, patSt.state, taxSt.state, extSt.state].forEach(st => { if(st === 'expired') expiredCount++; if(st === 'warning') warningCount++; if(st === 'valid') validCount++; });
+                const vigSt = getDocStatus(v.vignetteExpiry); const patSt = getDocStatus(v.licenseExpiry); 
+                const taxSt = getDocStatus(v.cityTaxExpiry); const extSt = getDocStatus(v.extinguisherExpiry);
+                
+                [insSt.state, techSt.state, vigSt.state, patSt.state, taxSt.state, extSt.state].forEach(st => { 
+                    if(st === 'expired') expiredCount++; if(st === 'warning') warningCount++; if(st === 'valid') validCount++; 
+                });
                 return `
                 <tr class="hover:bg-white/5 border-b border-gray-700/50">
                     <td class="px-6 py-4"><div class="font-bold text-white">${v.brand}</div><div class="text-xs text-gray-400">${v.plate}</div></td>
                     <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] ${insSt.bg} ${insSt.text} whitespace-nowrap">${insSt.label}</span></td>
                     <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] ${techSt.bg} ${techSt.text} whitespace-nowrap">${techSt.label}</span></td>
+                    <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] ${vigSt.bg} ${vigSt.text} whitespace-nowrap">${vigSt.label}</span></td>
                     <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] ${patSt.bg} ${patSt.text} whitespace-nowrap">${patSt.label}</span></td>
                     <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] ${taxSt.bg} ${taxSt.text} whitespace-nowrap">${taxSt.label}</span></td>
                     <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] ${extSt.bg} ${extSt.text} whitespace-nowrap">${extSt.label}</span></td>
                     <td class="px-6 py-4 text-center"><button onclick="openModal('editDocuments', '${v.id}')" class="text-blue-400 hover:text-blue-300 text-xs border border-blue-500/30 px-3 py-1.5 rounded-lg bg-blue-500/10">MàJ</button></td>
                 </tr>`;
             }).join('');
-            document.getElementById('docsTable').innerHTML = docsHtml || `<tr><td colspan="7" class="text-center py-6 text-gray-500">Aucun véhicule.</td></tr>`;
+            document.getElementById('docsTable').innerHTML = docsHtml || `<tr><td colspan="8" class="text-center py-6 text-gray-500">Aucun véhicule.</td></tr>`;
             
+            // Maintenance Kilométrique
+            const maintHtml = fVehicles.map(v => {
+                if(!v.nextMaintenanceMileage || v.nextMaintenanceMileage === 0) return '';
+                let current = v.currentMileage || 0;
+                let next = v.nextMaintenanceMileage;
+                let diff = next - current;
+                let stBg = 'bg-green-500/10 border-green-500/30'; let stTxt = 'text-green-400'; let stLabel = 'OK';
+                
+                if(diff <= 0) { stBg = 'bg-red-500/20 border-red-500/50'; stTxt = 'text-red-400 font-bold'; stLabel = 'Révision Dépassée !'; expiredCount++; }
+                else if(diff <= 500) { stBg = 'bg-orange-500/20 border-orange-500/50'; stTxt = 'text-orange-400 font-bold'; stLabel = `Dans ${diff} km`; warningCount++; }
+                else { validCount++; }
+
+                return `
+                <tr class="hover:bg-white/5 border-b border-gray-700/50">
+                    <td class="px-6 py-4"><div class="font-bold text-white">${v.brand}</div><div class="text-xs text-gray-400">${v.plate}</div></td>
+                    <td class="px-6 py-4 text-white">${current.toLocaleString()} km</td>
+                    <td class="px-6 py-4 text-white">${next.toLocaleString()} km</td>
+                    <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] border ${stBg} ${stTxt}">${stLabel}</span></td>
+                    <td class="px-6 py-4 text-center"><button onclick="openModal('addExpense')" class="text-orange-400 hover:text-orange-300 text-xs border border-orange-500/30 px-3 py-1.5 rounded-lg bg-orange-500/10">Faire Révision</button></td>
+                </tr>`;
+            }).join('');
+            document.getElementById('maintenanceTable').innerHTML = maintHtml || `<tr><td colspan="5" class="text-center py-6 text-gray-500">Aucune alerte kilométrique configurée.</td></tr>`;
+
             const driverDocsHtml = fDrivers.map(d => {
                 const medSt = getDocStatus(d.medicalVisitExpiry);
                 [medSt.state].forEach(st => { if(st === 'expired') expiredCount++; if(st === 'warning') warningCount++; if(st === 'valid') validCount++; });
@@ -1153,7 +1575,7 @@
             if (totalAlerts > 0) { navBadge.textContent = totalAlerts; navBadge.classList.remove('hidden'); dashAlertsArea.classList.remove('hidden'); }
             else { navBadge.classList.add('hidden'); dashAlertsArea.classList.add('hidden'); }
 
-            // GRILLE VÉHICULES (Avec assignation visible)
+            // GRILLE VÉHICULES
             document.getElementById('vehiclesGrid').innerHTML = fVehicles.map(v => {
                 const drv = fDrivers.find(d => d.id === v.assignedDriverId);
                 const drvName = drv ? `${drv.firstName} ${drv.lastName}` : 'Aucun chauffeur';
@@ -1171,15 +1593,15 @@
                         </div>
                         <span class="status-dot status-${v.status} mt-2"></span>
                     </div>
-                    <div class="pt-3 mt-3 border-t border-gray-700/50 text-xs text-gray-400">
-                        <i class="fas fa-steering-wheel mr-1"></i> ${drvName}
+                    <div class="pt-3 mt-3 border-t border-gray-700/50 text-xs text-gray-400 flex justify-between">
+                        <span><i class="fas fa-steering-wheel mr-1"></i> ${drvName}</span>
+                        <span><i class="fas fa-tachometer-alt mr-1"></i> ${v.currentMileage || 0} km</span>
                     </div>
                 </div>`;
             }).join('');
 
-            // TABLE CHAUFFEURS (Avec WhatsApp et Score de Versement)
+            // TABLE CHAUFFEURS
             document.getElementById('driversTable').innerHTML = fDrivers.map(d => {
-                // Calcul Score
                 let drvRevs = fRevs.filter(r => r.driverId === d.id && r.expected > 0);
                 let tExpected = drvRevs.reduce((s, r) => s + r.expected, 0);
                 let tPaid = drvRevs.reduce((s, r) => s + r.brut, 0);
@@ -1204,13 +1626,16 @@
                 </tr>`;
             }).join('');
 
-            // GRAND LIVRE (Avec indicateur de Manque/Surplus pour les versements)
+            // GRAND LIVRE
             let ledgerItems = [];
             if(currentLedgerTab === 'all' || currentLedgerTab === 'revenues') fRevs.forEach(r => ledgerItems.push({...r, _type: 'rev'}));
             if(currentLedgerTab === 'all' || currentLedgerTab === 'expenses') fExps.forEach(e => ledgerItems.push({...e, _type: 'exp'}));
             ledgerItems.sort((a,b) => b.timestamp - a.timestamp);
 
             document.getElementById('ledgerTable').innerHTML = ledgerItems.map(item => {
+                let drvName = '-';
+                if(item.driverId) { const d = fDrivers.find(d=>d.id===item.driverId); if(d) drvName = `${d.firstName} ${d.lastName}`; }
+
                 if(item._type === 'rev') {
                     let diffHtml = '';
                     if(item.driverId && item.expected > 0) {
@@ -1219,9 +1644,6 @@
                         else if (diff > 0) diffHtml = `<div class="text-[10px] text-blue-400 font-bold mt-1">Surplus: +${diff.toLocaleString()} F</div>`;
                         else diffHtml = `<div class="text-[10px] text-green-400 font-bold mt-1">Complet</div>`;
                     }
-                    let drvName = '-';
-                    if(item.driverId) { const d = fDrivers.find(d=>d.id===item.driverId); if(d) drvName = `${d.firstName} ${d.lastName}`; }
-
                     return `
                     <tr class="hover:bg-white/5 border-b border-gray-700/50 bg-green-900/5">
                         <td class="px-4 py-3 text-sm">${item.date}</td>
@@ -1233,13 +1655,17 @@
                         <td class="px-4 py-3 text-center no-print"><button onclick="deleteLedgerItem('rev', '${item.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button></td>
                     </tr>`;
                 } else {
+                    let typeClass = 'bg-red-500/20 text-red-400';
+                    if(item.type === 'Amende / Police') typeClass = 'bg-orange-500/20 text-orange-400';
+                    if(item.type === 'Salaire / RH') typeClass = 'bg-purple-500/20 text-purple-400';
+                    
                     let nextHtml = item.nextVisitDate ? `<div class="text-[10px] text-orange-300 mt-1">Planifié: ${item.nextVisitDate}</div>` : '';
                     return `
                     <tr class="hover:bg-white/5 border-b border-gray-700/50 bg-red-900/5">
                         <td class="px-4 py-3 text-sm">${item.date}</td>
-                        <td class="px-4 py-3"><span class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">${item.type}</span></td>
+                        <td class="px-4 py-3"><span class="text-xs ${typeClass} px-2 py-1 rounded">${item.type}</span></td>
                         <td class="px-4 py-3 text-sm font-medium">${item.vehicle}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500">-</td>
+                        <td class="px-4 py-3 text-sm text-gray-300">${drvName}</td>
                         <td class="px-4 py-3 text-xs text-gray-400 hidden lg:table-cell truncate max-w-[150px]">${item.description || '-'}</td>
                         <td class="px-4 py-3 text-sm text-right font-bold text-red-400">-${item.amount.toLocaleString()} F ${nextHtml}</td>
                         <td class="px-4 py-3 text-center no-print"><button onclick="deleteLedgerItem('exp', '${item.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button></td>
@@ -1247,13 +1673,77 @@
                 }
             }).join('') || `<tr><td colspan="7" class="text-center py-6 text-gray-500">Aucune opération trouvée.</td></tr>`;
 
-            // TABLE ADMIN SÉCURISÉE (On affiche l'email au lieu du username de l'ancien système)
+            // TABLE PIÈCES
+            const fParts = currentOwnerFilter === 'all' ? parts : parts.filter(p => p.ownerId === currentOwnerFilter);
+            document.getElementById('partsTable').innerHTML = fParts.sort((a,b) => b.timestamp - a.timestamp).map(p => `
+                <tr class="hover:bg-white/5 border-b border-gray-700/50">
+                    <td class="px-6 py-4 text-sm text-gray-400">${p.date}</td>
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-white">${p.name}</div>
+                        ${p.brand ? `<div class="text-[10px] text-gray-500 uppercase mt-1">Marque: ${p.brand}</div>` : ''}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm text-gray-300"><i class="fas fa-store text-gray-500 mr-2"></i>${p.supplier}</div>
+                        ${p.phone ? `<div class="text-[10px] text-blue-400 mt-1"><i class="fas fa-phone-alt mr-1"></i> ${p.phone}</div>` : ''}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-400">${p.location ? `<i class="fas fa-map-marker-alt text-red-400 mr-1"></i> ${p.location}` : '-'}</td>
+                    <td class="px-6 py-4 text-blue-400 font-medium">${p.price.toLocaleString()} F</td>
+                    <td class="px-6 py-4 text-center text-sm">${p.qty}</td>
+                    <td class="px-6 py-4 font-bold text-white">${p.total.toLocaleString()} F</td>
+                    <td class="px-6 py-4 text-right"><button onclick="deletePart('${p.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button></td>
+                </tr>
+            `).join('') || `<tr><td colspan="8" class="text-center py-6 text-gray-500">Aucune pièce enregistrée.</td></tr>`;
+
+            // =====================================
+            // MODULE RAPPORTS & RH
+            // =====================================
+            // 1. Stats globales
+            let totalFuel = fExps.filter(e => e.type === "Carburant").reduce((s, e) => s + e.amount, 0);
+            let totalFines = fExps.filter(e => e.type === "Amende / Police").reduce((s, e) => s + e.amount, 0);
+            let totalSalaries = fExps.filter(e => e.type === "Salaire / RH").reduce((s, e) => s + e.amount, 0);
+            document.getElementById('repFuel').textContent = totalFuel.toLocaleString() + ' F';
+            document.getElementById('repFines').textContent = totalFines.toLocaleString() + ' F';
+            document.getElementById('repSalaries').textContent = totalSalaries.toLocaleString() + ' F';
+
+            // 2. Performances Chauffeurs
+            let drvStats = fDrivers.map(d => {
+                let dRevs = fRevs.filter(r => r.driverId === d.id);
+                let totalGen = dRevs.reduce((s, r) => s + r.brut, 0);
+                
+                let scoreRevs = dRevs.filter(r => r.expected > 0);
+                let dExp = scoreRevs.reduce((s, r) => s + r.expected, 0);
+                let dPaid = scoreRevs.reduce((s, r) => s + r.brut, 0);
+                let dScore = dExp > 0 ? Math.min(100, Math.round((dPaid / dExp) * 100)) : -1;
+
+                return { name: `${d.firstName} ${d.lastName}`, gen: totalGen, score: dScore };
+            }).sort((a, b) => b.gen - a.gen);
+
+            document.getElementById('repDriversPerf').innerHTML = drvStats.map((d, index) => {
+                let badge = index === 0 ? '<i class="fas fa-medal text-yango-yellow mr-1"></i>' : (index === drvStats.length-1 ? '<i class="fas fa-arrow-down text-red-400 mr-1"></i>' : '');
+                let scoreHtml = d.score === -1 ? '<span class="text-gray-500">N/A</span>' : `<span class="${d.score>=90?'text-green-400':(d.score>=70?'text-orange-400':'text-red-400')} font-bold">${d.score}%</span>`;
+                return `<tr><td class="px-4 py-2 text-white font-bold">${index+1}</td><td class="px-4 py-2 text-white">${badge}${d.name}</td><td class="px-4 py-2 text-green-400 font-bold">${d.gen.toLocaleString()} F</td><td class="px-4 py-2">${scoreHtml}</td></tr>`;
+            }).join('') || `<tr><td colspan="4" class="text-center py-4 text-gray-500">Aucune donnée.</td></tr>`;
+
+            // 3. Amendes Table
+            const fines = fExps.filter(e => e.type === "Amende / Police").sort((a,b) => b.timestamp - a.timestamp);
+            document.getElementById('repFinesTable').innerHTML = fines.map(f => {
+                let dName = "-"; if(f.driverId) { const d = fDrivers.find(drv => drv.id === f.driverId); if(d) dName = `${d.firstName} ${d.lastName}`; }
+                return `<tr><td class="px-2 py-2 text-gray-400">${f.date}</td><td class="px-2 py-2 text-white">${dName} <span class="text-[10px] text-gray-500">(${f.vehicle || '-'})</span></td><td class="px-2 py-2 text-red-400 font-bold">-${f.amount.toLocaleString()} F</td></tr>`;
+            }).join('') || `<tr><td colspan="3" class="text-center py-4 text-gray-500">Aucune amende enregistrée.</td></tr>`;
+
+            // 4. Salaires Table
+            const sal = fExps.filter(e => e.type === "Salaire / RH").sort((a,b) => b.timestamp - a.timestamp);
+            document.getElementById('repSalariesTable').innerHTML = sal.map(s => {
+                let dName = s.description || "Personnel divers"; if(s.driverId) { const d = fDrivers.find(drv => drv.id === s.driverId); if(d) dName = `Chauffeur: ${d.firstName} ${d.lastName}`; }
+                return `<tr><td class="px-2 py-2 text-gray-400">${s.date}</td><td class="px-2 py-2 text-white">${dName}</td><td class="px-2 py-2 text-purple-400 font-bold">-${s.amount.toLocaleString()} F</td></tr>`;
+            }).join('') || `<tr><td colspan="3" class="text-center py-4 text-gray-500">Aucun salaire enregistré.</td></tr>`;
+
+
+            // TABLE ADMIN SÉCURISÉE 
             if(loggedInUser && loggedInUser.role === 'admin') {
                 document.getElementById('ownersTable').innerHTML = users.map(u => {
                     const roleBadge = u.role === 'admin' ? `<span class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">Admin</span>` : `<span class="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded">Propriétaire</span>`;
                     const deleteBtn = u.id !== loggedInUser.id ? `<button onclick="deleteOwner('${u.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>` : `<span class="text-gray-600 text-xs italic">Vous</span>`;
-                    
-                    // Gestion de la rétrocompatibilité (si un vieux compte a un username mais pas d'email)
                     const displayId = u.email || `<span class="text-gray-600 italic">Vieux compte (${u.username})</span>`;
 
                     return `<tr class="border-b border-gray-700/50"><td class="px-6 py-4 text-sm font-mono text-gray-400">${displayId}</td><td class="px-6 py-4 font-bold text-white">${u.name}</td><td class="px-6 py-4">${roleBadge}</td><td class="px-6 py-4 text-right">${deleteBtn}</td></tr>`;
@@ -1305,7 +1795,7 @@
 
             let expGrouped = {};
             fExps.forEach(e => { expGrouped[e.type] = (expGrouped[e.type] || 0) + e.amount; });
-            const expLabels = Object.keys(expGrouped); const expData = Object.values(expGrouped); const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899'];
+            const expLabels = Object.keys(expGrouped); const expData = Object.values(expGrouped); const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#10b981'];
             chartExpenses.data = { labels: expLabels.length ? expLabels : ['Aucune dépense'], datasets: [{ data: expData.length ? expData : [1], backgroundColor: expData.length ? colors.slice(0, expLabels.length) : ['#374151'], borderWidth: 0 }] };
             chartExpenses.update();
         }
