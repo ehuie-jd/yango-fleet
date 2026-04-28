@@ -100,6 +100,9 @@
                 <button onclick="showSection('drivers')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all">
                     <i class="fas fa-user-tie w-5"></i><span class="font-medium">Chauffeurs & Perf.</span>
                 </button>
+                <button onclick="showSection('personnel')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all">
+                    <i class="fas fa-id-badge w-5"></i><span class="font-medium">Personnel & RH</span>
+                </button>
                 <button onclick="showSection('documents')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all relative">
                     <i class="fas fa-file-contract w-5"></i><span class="font-medium">Admin & Alertes</span>
                     <span id="navDocAlert" class="absolute right-4 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full hidden">0</span>
@@ -263,6 +266,38 @@
                                     </tr>
                                 </thead>
                                 <tbody id="driversTable" class="divide-y divide-gray-700/50">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PERSONNEL & RH -->
+                <div id="personnel" class="hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-2xl font-bold">Personnel & Employés</h2>
+                            <p class="text-sm text-gray-400 mt-1">Gérez le recrutement, les postes et les salaires du personnel administratif et technique.</p>
+                        </div>
+                        <button onclick="openModal('addStaff')" class="px-4 py-2 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 transition-colors shadow-sm">
+                            <i class="fas fa-plus md:mr-2"></i><span class="hidden md:inline">Nouvel Employé</span>
+                        </button>
+                    </div>
+                    <div class="glass rounded-2xl overflow-hidden border border-gray-700/50">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left min-w-[800px]">
+                                <thead class="bg-white/5 border-b border-gray-700">
+                                    <tr>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Employé</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Rôle / Poste</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Contact</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Salaire Mensuel</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase text-center">Statut</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staffTable" class="divide-y divide-gray-700/50">
                                     <!-- Populated dynamically -->
                                 </tbody>
                             </table>
@@ -620,6 +655,7 @@
         let revenues = []; 
         let expenses = []; 
         let parts = []; 
+        let staff = []; 
         
         let loggedInUser = null;
         let currentOwnerFilter = 'all'; 
@@ -722,6 +758,7 @@
             onSnapshot(getColRef('revenues'), (snapshot) => { revenues = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) { updateUI(); updateCharts(); } }, console.error);
             onSnapshot(getColRef('expenses'), (snapshot) => { expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) { updateUI(); updateCharts(); } }, console.error);
             onSnapshot(getColRef('parts'), (snapshot) => { parts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) updateUI(); }, console.error); 
+            onSnapshot(getColRef('staff'), (snapshot) => { staff = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) updateUI(); }, console.error); 
         }
 
         onAuthStateChanged(auth, (user) => { 
@@ -777,7 +814,7 @@
 
         window.showSection = (section) => {
             document.querySelectorAll('#contentArea > div[id]').forEach(div => {
-                if (['dashboard', 'vehicles', 'drivers', 'documents', 'finance', 'parts', 'reports', 'admin'].includes(div.id)) {
+                if (['dashboard', 'vehicles', 'drivers', 'personnel', 'documents', 'finance', 'parts', 'reports', 'admin'].includes(div.id)) {
                     div.classList.add('hidden');
                 }
             });
@@ -1120,6 +1157,42 @@
                         <button type="submit" class="w-full py-2 bg-yango-yellow text-black rounded-lg font-medium hover:bg-yellow-400 mt-3">Enregistrer Chauffeur</button>
                     </form>
                 `;
+            } else if (type === 'addStaff') {
+                title.innerHTML = '<i class="fas fa-id-badge text-purple-400 mr-2"></i> Ajouter un Employé';
+                content.innerHTML = `
+                    <form onsubmit="saveStaff(event)" class="space-y-3">
+                        ${ownerSelectHtml}
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="text-xs text-gray-400">Nom</label><input type="text" id="sLastName" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                            <div><label class="text-xs text-gray-400">Prénoms</label><input type="text" id="sFirstName" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        </div>
+                        
+                        <div>
+                            <label class="text-xs text-gray-400">Rôle / Poste</label>
+                            <input type="text" id="sRole" placeholder="Ex: Mécanicien, Comptable, Manager..." required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                        </div>
+
+                        <div><label class="text-xs text-gray-400">Numéro de téléphone</label><input type="text" id="sPhone" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        
+                        <div class="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                            <label class="text-xs text-purple-400 font-bold">Salaire Mensuel (FCFA)</label>
+                            <input type="number" id="sSalary" required placeholder="Ex: 150000" class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white font-bold">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 mt-2">
+                            <div><label class="text-xs text-gray-400">Date de Recrutement</label><input type="date" id="sStartDate" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white" value="${new Date().toISOString().split('T')[0]}"></div>
+                            <div>
+                                <label class="text-xs text-gray-400">Statut Contrat</label>
+                                <select id="sStatus" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                                    <option value="actif">Actif (En poste)</option>
+                                    <option value="essai">Période d'essai</option>
+                                    <option value="termine">Contrat Terminé</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full py-2 bg-purple-500 text-white rounded-lg font-bold hover:bg-purple-600 mt-3">Enregistrer l'employé</button>
+                    </form>
+                `;
             } else if (type === 'editDocuments') {
                 const vehicle = vehicles.find(v => v.id === dataId);
                 title.innerHTML = `<i class="fas fa-file-contract text-blue-400 mr-2"></i> Documents : ${vehicle.plate}`;
@@ -1208,6 +1281,36 @@
                             <div><label class="text-xs text-gray-400">N° Permis</label><input type="text" id="editDLicense" value="${driver.license}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
                         </div>
                         <button type="submit" class="w-full py-2 bg-yango-yellow text-black rounded-lg font-medium hover:bg-yellow-400">Mettre à jour</button>
+                    </form>
+                `;
+            } else if (type === 'editStaff') {
+                const s = staff.find(x => x.id === dataId);
+                title.innerHTML = `<i class="fas fa-id-badge text-purple-400 mr-2"></i> Modifier Employé : ${s.firstName} ${s.lastName}`;
+                content.innerHTML = `
+                    <form onsubmit="updateStaff(event, '${s.id}')" class="space-y-3">
+                        <div><label class="text-xs text-gray-400">Rôle / Poste</label><input type="text" id="editSRole" value="${s.role}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <div><label class="text-xs text-gray-400">Téléphone</label><input type="text" id="editSPhone" value="${s.phone}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        
+                        <div class="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                            <label class="text-xs text-purple-400 font-bold">Nouveau Salaire Mensuel (FCFA)</label>
+                            <input type="number" id="editSSalary" value="${s.salary}" required class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white font-bold">
+                        </div>
+
+                        <div class="border-t border-gray-700 pt-3 mt-2 space-y-3">
+                            <p class="text-xs text-gray-400 font-bold uppercase text-red-400">Fin de contrat / Départ</p>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-xs text-gray-400">Statut Actuel</label>
+                                    <select id="editSStatus" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                                        <option value="actif" ${s.status === 'actif' ? 'selected' : ''}>Actif (En poste)</option>
+                                        <option value="essai" ${s.status === 'essai' ? 'selected' : ''}>Période d'essai</option>
+                                        <option value="termine" ${s.status === 'termine' ? 'selected' : ''}>Contrat Terminé / Licencié</option>
+                                    </select>
+                                </div>
+                                <div><label class="text-xs text-gray-400">Date de fin (Optionnel)</label><input type="date" id="editSEndDate" value="${s.endDate || ''}" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full py-3 bg-purple-500 text-white rounded-lg font-bold hover:bg-purple-600 mt-3">Mettre à jour l'employé</button>
                     </form>
                 `;
             }
@@ -1352,6 +1455,33 @@
             closeModal(); customAlert("Dossier médical mis à jour !");
         };
 
+        window.saveStaff = async (e) => {
+            e.preventDefault(); if(!fbUser) return; const ownerId = resolveOwnerId(); if(!ownerId) return customAlert("Propriétaire non défini.", true);
+            const data = {
+                ownerId: ownerId, lastName: document.getElementById('sLastName').value, firstName: document.getElementById('sFirstName').value,
+                role: document.getElementById('sRole').value, phone: document.getElementById('sPhone').value,
+                salary: parseFloat(document.getElementById('sSalary').value) || 0,
+                startDate: document.getElementById('sStartDate').value, endDate: null,
+                status: document.getElementById('sStatus').value, timestamp: new Date().getTime()
+            };
+            await addDoc(getColRef('staff'), data); closeModal();
+        };
+
+        window.updateStaff = async (e, id) => {
+            e.preventDefault(); if(!fbUser) return;
+            const data = {
+                role: document.getElementById('editSRole').value, phone: document.getElementById('editSPhone').value,
+                salary: parseFloat(document.getElementById('editSSalary').value) || 0,
+                status: document.getElementById('editSStatus').value,
+                endDate: document.getElementById('editSEndDate').value || null
+            };
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'staff', id), data); closeModal();
+        };
+
+        window.deleteStaff = (id) => {
+            if(!fbUser) return; customConfirm("Supprimer cet employé de la base de données ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'staff', id)); });
+        };
+
         window.saveRevenue = async (e) => {
             e.preventDefault(); if(!fbUser) return;
             const plate = document.getElementById('revVehicle').value; 
@@ -1485,6 +1615,7 @@
         function updateUI() {
             const fVehicles = currentOwnerFilter === 'all' ? vehicles : vehicles.filter(v => v.ownerId === currentOwnerFilter);
             const fDrivers = currentOwnerFilter === 'all' ? drivers : drivers.filter(d => d.ownerId === currentOwnerFilter);
+            const fStaff = currentOwnerFilter === 'all' ? staff : staff.filter(s => s.ownerId === currentOwnerFilter);
             const fRevs = currentOwnerFilter === 'all' ? revenues : revenues.filter(r => r.ownerId === currentOwnerFilter);
             const fExps = currentOwnerFilter === 'all' ? expenses : expenses.filter(e => e.ownerId === currentOwnerFilter);
 
@@ -1625,6 +1756,30 @@
                     </td>
                 </tr>`;
             }).join('');
+
+            // TABLE PERSONNEL (STAFF)
+            document.getElementById('staffTable').innerHTML = fStaff.sort((a, b) => b.timestamp - a.timestamp).map(s => {
+                let statusHtml = '';
+                if(s.status === 'actif') statusHtml = '<span class="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-bold">Actif</span>';
+                else if(s.status === 'essai') statusHtml = '<span class="bg-orange-500/20 text-orange-400 px-3 py-1 rounded-full text-[10px] font-bold">En essai</span>';
+                else statusHtml = '<span class="bg-red-500/20 text-red-400 px-3 py-1 rounded-full text-[10px] font-bold">Contrat Terminé</span>';
+
+                let dateInfo = `<div class="text-[10px] text-gray-500 mt-1">Depuis le ${s.startDate}</div>`;
+                if(s.status === 'termine' && s.endDate) dateInfo = `<div class="text-[10px] text-red-400 mt-1">Fini le ${s.endDate}</div>`;
+
+                return `
+                <tr class="hover:bg-white/5 border-b border-gray-700/50 ${s.status === 'termine' ? 'opacity-50 grayscale' : ''}">
+                    <td class="px-6 py-4"><div class="font-bold text-white">${s.lastName} ${s.firstName}</div><div class="text-[10px] text-gray-500 uppercase mt-1">${getOwnerName(s.ownerId)}</div></td>
+                    <td class="px-6 py-4 text-purple-400 font-medium">${s.role}</td>
+                    <td class="px-6 py-4 text-sm text-gray-300">${s.phone}</td>
+                    <td class="px-6 py-4 font-bold text-white">${s.salary.toLocaleString()} F ${dateInfo}</td>
+                    <td class="px-6 py-4 text-center">${statusHtml}</td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="openModal('editStaff', '${s.id}')" class="text-blue-400 hover:text-blue-300 mr-3"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteStaff('${s.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            }).join('') || `<tr><td colspan="6" class="text-center py-6 text-gray-500">Aucun employé dans le personnel.</td></tr>`;
 
             // GRAND LIVRE
             let ledgerItems = [];
