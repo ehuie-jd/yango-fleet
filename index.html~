@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yango Fleet Manager - Sécurisé & Complet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- Librairie pour l'export PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .gradient-bg { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .status-actif { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+        .status-inactif { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+        .status-maintenance { background: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
+        .slide-in { animation: slideIn 0.4s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .yango-yellow { color: #FFD700; }
+        .bg-yango-yellow { background-color: #FFD700; }
+        .text-yango-yellow { color: #FFD700; }
+        .border-yango-yellow { border-color: #FFD700; }
+        
+        .loader { border: 3px solid rgba(255,255,255,0.1); border-radius: 50%; border-top: 3px solid #FFD700; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Styles d'impression (PDF) */
+        @media print {
+            body { background: white; color: black; }
+            .glass { background: none; border: 1px solid #ccc; filter: none; }
+            .no-print { display: none !important; }
+            .gradient-bg { background: white; }
+            * { color: black !important; text-shadow: none !important; }
+        }
+    </style>
+</head>
+<body class="gradient-bg text-gray-100 min-h-screen relative">
+
+    <!-- ================= ÉCRAN DE CONNEXION ================= -->
+    <div id="loginScreen" class="absolute inset-0 z-50 flex items-center justify-center bg-gray-900/95 backdrop-blur-md">
+        <div class="glass rounded-2xl p-8 max-w-sm w-full border border-gray-700/50 slide-in text-center">
+            <div class="w-16 h-16 bg-yango-yellow rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-yellow-500/20">
+                <i class="fas fa-taxi text-black text-3xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold mb-2">Yango Fleet</h2>
+            <p class="text-gray-400 text-sm mb-6">Connectez-vous à votre espace</p>
+            
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4 text-left">
+                <div>
+                    <label class="text-sm text-gray-400 block mb-1">Identifiant</label>
+                    <div class="relative">
+                        <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                        <input type="text" id="loginUser" required class="w-full pl-10 pr-3 py-2.5 bg-gray-800 border border-gray-600 rounded-xl text-sm focus:outline-none focus:border-yango-yellow transition-colors" placeholder="Ex: admin ou propa">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-sm text-gray-400 block mb-1">Mot de passe</label>
+                    <div class="relative">
+                        <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                        <input type="password" id="loginPass" required class="w-full pl-10 pr-3 py-2.5 bg-gray-800 border border-gray-600 rounded-xl text-sm focus:outline-none focus:border-yango-yellow transition-colors" placeholder="••••••••">
+                    </div>
+                </div>
+                <div id="loginError" class="text-red-400 text-xs hidden text-center">Identifiants incorrects.</div>
+                <button type="submit" class="w-full py-3 mt-2 bg-yango-yellow text-black rounded-xl font-bold hover:bg-yellow-400 transition-colors shadow-lg shadow-yellow-500/20">
+                    Se connecter
+                </button>
+            </form>
+            
+            <div class="mt-6 p-4 bg-gray-800/50 rounded-lg text-xs text-left text-gray-400 border border-gray-700">
+                <p class="font-bold text-gray-300 mb-1">Comptes de démo :</p>
+                <p>- Admin : <span class="text-yango-yellow">admin</span> / <span class="text-white">admin123</span></p>
+                <p>- Prop. A : <span class="text-yango-yellow">propa</span> / <span class="text-white">prop123</span></p>
+                <p>- Prop. B : <span class="text-yango-yellow">propb</span> / <span class="text-white">prop123</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= APPLICATION PRINCIPALE ================= -->
+    <div id="mainApp" class="flex h-screen overflow-hidden hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 glass hidden md:flex flex-col border-r border-gray-700/50 relative z-20 no-print">
+            <div class="p-6 border-b border-gray-700/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-yango-yellow rounded-lg flex items-center justify-center">
+                        <i class="fas fa-taxi text-black text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg tracking-tight">Fleet Multi</h1>
+                        <p class="text-xs text-gray-400" id="sidebarRoleLabel">Chargement...</p>
+                    </div>
+                </div>
+            </div>
+            <nav class="flex-1 p-4 space-y-1">
+                <button onclick="showSection('dashboard')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-yango-yellow/10 text-yango-yellow border border-yango-yellow/20 transition-all">
+                    <i class="fas fa-chart-line w-5"></i><span class="font-medium">Tableau de Bord</span>
+                </button>
+                <button onclick="showSection('vehicles')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all">
+                    <i class="fas fa-car w-5"></i><span class="font-medium">Flotte (Stock)</span>
+                </button>
+                <button onclick="showSection('drivers')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all">
+                    <i class="fas fa-user-tie w-5"></i><span class="font-medium">Chauffeurs</span>
+                </button>
+                <button onclick="showSection('documents')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all relative">
+                    <i class="fas fa-file-contract w-5"></i><span class="font-medium">Admin & Alertes</span>
+                    <span id="navDocAlert" class="absolute right-4 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full hidden">0</span>
+                </button>
+                <button onclick="showSection('finance')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all">
+                    <i class="fas fa-wallet w-5"></i><span class="font-medium">Finances & Dépenses</span>
+                </button>
+                <button id="adminNavBtn" onclick="showSection('admin')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all hidden">
+                    <i class="fas fa-users-cog w-5"></i><span class="font-medium">Administration</span>
+                </button>
+            </nav>
+            <div class="p-4 border-t border-gray-700/50">
+                <button onclick="logout()" class="w-full flex items-center justify-center gap-2 py-2 text-sm text-red-400 hover:bg-red-400/10 rounded-lg transition-colors">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden relative z-10">
+            <!-- Header avec Sélecteur de Propriétaire -->
+            <header class="glass border-b border-gray-700/50 px-6 py-4 flex flex-wrap gap-4 items-center justify-between no-print">
+                <div class="flex items-center gap-4">
+                    <button class="md:hidden text-white" onclick="document.querySelector('aside').classList.toggle('hidden')">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h2 class="text-xl font-bold hidden sm:block" id="headerUserName">Bienvenue</h2>
+                </div>
+                <div class="flex items-center gap-4">
+                    <!-- Filtre global (Visible uniquement par l'admin) -->
+                    <div id="adminFilterContainer" class="hidden items-center gap-2 bg-gray-800/50 p-1.5 rounded-xl border border-gray-600/50">
+                        <span class="text-xs text-gray-400 pl-2 hidden sm:inline"><i class="fas fa-filter mr-1"></i>Vue :</span>
+                        <select id="ownerFilter" onchange="changeOwnerFilter(this.value)" class="bg-gray-800 border border-gray-600 rounded-lg px-3 py-1.5 text-sm font-medium text-yango-yellow focus:outline-none cursor-pointer">
+                            <option value="all">🌐 Tous les parcs</option>
+                            <!-- Rempli par JS -->
+                        </select>
+                    </div>
+                    
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center font-bold text-black border-2 border-gray-800 shadow-md">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="flex-1 overflow-y-auto scrollbar-hide p-4 md:p-6" id="contentArea">
+                
+                <!-- DASHBOARD -->
+                <div id="dashboard" class="space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-2xl font-bold" id="dashTitle">Vue d'ensemble Globale</h2>
+                            <p class="text-gray-400 text-sm mt-1">Analyse détaillée des performances</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Alertes critiques sur le Dashboard -->
+                    <div id="dashAlertsArea" class="hidden">
+                        <div class="bg-red-500/20 border border-red-500/50 rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:bg-red-500/30 transition-colors" onclick="showSection('documents')">
+                            <i class="fas fa-exclamation-triangle text-2xl text-red-400"></i>
+                            <div>
+                                <h4 class="text-red-400 font-bold">Action Requise</h4>
+                                <p class="text-sm text-gray-300">Certains véhicules ont des documents expirés ou arrivant à expiration imminente.</p>
+                            </div>
+                            <i class="fas fa-chevron-right ml-auto text-gray-400"></i>
+                        </div>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="glass rounded-2xl p-5 card-hover border border-gray-700/50">
+                            <div class="flex justify-between items-start">
+                                <div class="p-3 rounded-xl bg-blue-500/10 w-max mb-2"><i class="fas fa-car text-blue-400 text-xl"></i></div>
+                                <span class="text-xs bg-gray-800 px-2 py-1 rounded border border-gray-700 text-gray-400" id="statDispo">--% dispo</span>
+                            </div>
+                            <p class="text-3xl font-bold" id="statVehicles">0</p>
+                            <p class="text-gray-400 text-sm mt-1">Véhicules Total</p>
+                        </div>
+                        <div class="glass rounded-2xl p-5 card-hover border border-gray-700/50">
+                            <div class="p-3 rounded-xl bg-green-500/10 w-max mb-4"><i class="fas fa-money-bill-wave text-green-400 text-xl"></i></div>
+                            <p class="text-3xl font-bold text-green-400" id="statRevenue">0 F</p>
+                            <p class="text-gray-400 text-sm mt-1">Recettes Brutes</p>
+                        </div>
+                        <div class="glass rounded-2xl p-5 card-hover border border-red-700/30">
+                            <div class="p-3 rounded-xl bg-red-500/10 w-max mb-4"><i class="fas fa-tools text-red-400 text-xl"></i></div>
+                            <p class="text-3xl font-bold text-red-400" id="statExpenses">0 F</p>
+                            <p class="text-gray-400 text-sm mt-1">Total Dépenses</p>
+                        </div>
+                        <div class="glass rounded-2xl p-5 card-hover border border-yango-yellow/30 bg-yango-yellow/5">
+                            <div class="p-3 rounded-xl bg-yango-yellow/20 w-max mb-4"><i class="fas fa-chart-line text-yango-yellow text-xl"></i></div>
+                            <p class="text-3xl font-bold text-yango-yellow" id="statNet">0 F</p>
+                            <p class="text-gray-400 text-sm mt-1">Bénéfice Net Propriétaire</p>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row 1 -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="glass rounded-2xl p-6 border border-gray-700/50">
+                            <h3 class="font-semibold mb-4 text-white">Bilan Financier (Recettes vs Dépenses)</h3>
+                            <canvas id="financeChart" height="200"></canvas>
+                        </div>
+                        <div class="glass rounded-2xl p-6 border border-gray-700/50">
+                            <h3 class="font-semibold mb-4 text-white">Répartition de la Flotte</h3>
+                            <canvas id="fleetChart" height="200"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row 2 (Analytics) -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="glass rounded-2xl p-6 border border-gray-700/50">
+                            <h3 class="font-semibold mb-4 text-white">Top 5 - Véhicules les plus rentables (Net)</h3>
+                            <canvas id="topVehiclesChart" height="200"></canvas>
+                        </div>
+                        <div class="glass rounded-2xl p-6 border border-gray-700/50">
+                            <h3 class="font-semibold mb-4 text-white">Dépenses par Catégorie</h3>
+                            <canvas id="expensesChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VEHICLES (STOCK) -->
+                <div id="vehicles" class="hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-2xl font-bold">Parc Automobile</h2>
+                        <button onclick="openModal('addVehicle')" class="px-4 py-2 bg-yango-yellow text-black rounded-xl font-medium hover:bg-yellow-400 transition-colors">
+                            <i class="fas fa-plus md:mr-2"></i><span class="hidden md:inline">Nouveau Véhicule</span>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" id="vehiclesGrid">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- DRIVERS -->
+                <div id="drivers" class="hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-2xl font-bold">Chauffeurs</h2>
+                        <button onclick="openModal('addDriver')" class="px-4 py-2 bg-yango-yellow text-black rounded-xl font-medium hover:bg-yellow-400 transition-colors">
+                            <i class="fas fa-plus md:mr-2"></i><span class="hidden md:inline">Nouveau Chauffeur</span>
+                        </button>
+                    </div>
+                    <div class="glass rounded-2xl overflow-hidden border border-gray-700/50">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left min-w-[600px]">
+                                <thead class="bg-white/5">
+                                    <tr>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Chauffeur</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Contact & Adresse</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Documents</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Appartenance</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="driversTable" class="divide-y divide-gray-700/50">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ADMIN & DOCUMENTS (NOUVEAU) -->
+                <div id="documents" class="hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-2xl font-bold">Administration & Échéances</h2>
+                            <p class="text-gray-400 text-sm mt-1">Gérez les assurances, visites techniques et patentes.</p>
+                        </div>
+                    </div>
+
+                    <!-- Cartes de synthèse Documents -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="glass rounded-xl p-4 border border-red-500/30 bg-red-500/5 flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center text-red-400 text-xl"><i class="fas fa-exclamation-triangle"></i></div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-red-400" id="docExpiredCount">0</h3>
+                                <p class="text-sm text-gray-400">Documents Expirés</p>
+                            </div>
+                        </div>
+                        <div class="glass rounded-xl p-4 border border-orange-500/30 bg-orange-500/5 flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 text-xl"><i class="fas fa-bell"></i></div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-orange-400" id="docWarningCount">0</h3>
+                                <p class="text-sm text-gray-400">Expirant à J-30</p>
+                            </div>
+                        </div>
+                        <div class="glass rounded-xl p-4 border border-green-500/30 bg-green-500/5 flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 text-xl"><i class="fas fa-check"></i></div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-green-400" id="docOkCount">0</h3>
+                                <p class="text-sm text-gray-400">Documents à jour</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="text-xl font-bold text-white mt-8 mb-4"><i class="fas fa-car mr-2"></i>Documents Véhicules</h3>
+                    <!-- Tableau des Documents Véhicules -->
+                    <div class="glass rounded-2xl overflow-hidden border border-gray-700/50">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left min-w-[1000px]">
+                                <thead class="bg-white/5 border-b border-gray-700">
+                                    <tr>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Véhicule</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Assurance</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Visite Tech.</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Patente / VTC</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Taxe Mairie</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Extincteur</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="docsTable" class="divide-y divide-gray-700/50">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <h3 class="text-xl font-bold text-white mt-8 mb-4"><i class="fas fa-user-tie mr-2"></i>Documents Chauffeurs</h3>
+                    <!-- Tableau des Documents Chauffeurs -->
+                    <div class="glass rounded-2xl overflow-hidden border border-gray-700/50">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left min-w-[600px]">
+                                <thead class="bg-white/5 border-b border-gray-700">
+                                    <tr>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Chauffeur</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Contact</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Visite Médicale</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="driverDocsTable" class="divide-y divide-gray-700/50">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FINANCE & DÉPENSES -->
+                <div id="finance" class="hidden space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+                        <div>
+                            <h2 class="text-2xl font-bold">Opérations Financières</h2>
+                            <p class="text-gray-400 text-sm mt-1">Gérez vos recettes journalières et vos dépenses diverses.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="exportToCSV()" class="px-3 py-2 bg-blue-500/20 text-blue-400 border border-blue-500/50 rounded-lg font-medium hover:bg-blue-500/30 transition-colors shadow-sm text-sm" title="Exporter Excel (CSV)">
+                                <i class="fas fa-file-excel mr-1"></i> Excel
+                            </button>
+                            <button onclick="exportToPDF()" class="px-3 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg font-medium hover:bg-red-500/30 transition-colors shadow-sm text-sm" title="Exporter PDF">
+                                <i class="fas fa-file-pdf mr-1"></i> PDF
+                            </button>
+                            <button onclick="openModal('addRevenue')" class="px-4 py-2 bg-green-500/20 text-green-400 border border-green-500/50 rounded-lg font-medium hover:bg-green-500/30 transition-colors shadow-sm ml-2">
+                                <i class="fas fa-plus mr-1"></i>Recette
+                            </button>
+                            <button onclick="openModal('addExpense')" class="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg font-medium hover:bg-red-500/30 transition-colors shadow-sm">
+                                <i class="fas fa-minus mr-1"></i>Dépense
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Unified Ledger (Grand Livre) -->
+                    <div class="glass rounded-2xl p-4 md:p-6 border border-gray-700/50" id="ledgerExportArea">
+                        <div class="flex gap-4 mb-6 border-b border-gray-700 pb-2 no-print">
+                            <button onclick="switchFinanceTab('all')" id="tabAll" class="text-yango-yellow font-bold border-b-2 border-yango-yellow pb-2 px-2 transition-all">Tout l'historique</button>
+                            <button onclick="switchFinanceTab('revenues')" id="tabRev" class="text-gray-400 hover:text-white pb-2 px-2 transition-all">Recettes Uniquement</button>
+                            <button onclick="switchFinanceTab('expenses')" id="tabExp" class="text-gray-400 hover:text-white pb-2 px-2 transition-all">Dépenses Uniquement</button>
+                        </div>
+                        
+                        <h3 class="font-bold text-lg mb-4 hidden print-only" style="color:black; display:none;">Extrait Financier - Yango Fleet</h3>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm min-w-[800px]" id="dataTable">
+                                <thead class="bg-white/5 border-b border-gray-700">
+                                    <tr>
+                                        <th class="px-4 py-3 text-gray-400 font-semibold">Date</th>
+                                        <th class="px-4 py-3 text-gray-400 font-semibold">Type / Motif</th>
+                                        <th class="px-4 py-3 text-gray-400 font-semibold">Véhicule</th>
+                                        <th class="px-4 py-3 text-gray-400 font-semibold hidden lg:table-cell">Détails</th>
+                                        <th class="px-4 py-3 text-gray-400 font-semibold text-right">Montant Brut</th>
+                                        <th class="px-4 py-3 font-bold text-white text-right">Impact Net</th>
+                                        <th class="px-4 py-3 text-gray-400 text-center no-print">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ledgerTable" class="divide-y divide-gray-700/50">
+                                    <!-- Populé par JS (mélange de recettes et dépenses) -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ADMINISTRATION COMPTES -->
+                <div id="admin" class="hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-2xl font-bold text-purple-400"><i class="fas fa-shield-alt mr-2"></i>Administration Utilisateurs</h2>
+                        <button onclick="openModal('addOwner')" class="px-4 py-2 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Nouveau Compte
+                        </button>
+                    </div>
+                    <div class="glass rounded-2xl overflow-hidden border border-gray-700/50">
+                        <table class="w-full text-left">
+                            <thead class="bg-white/5">
+                                <tr>
+                                    <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Identifiant Connexion</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Nom du Propriétaire</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Rôle</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ownersTable" class="divide-y divide-gray-700/50">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-[100] p-4">
+        <div class="glass rounded-2xl p-6 max-w-md w-full border border-gray-700/50 slide-in relative shadow-2xl">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-xl"><i class="fas fa-times"></i></button>
+            <h3 class="text-xl font-bold mb-4 border-b border-gray-700 pb-2" id="modalTitle">Titre</h3>
+            <div id="modalContent" class="max-h-[80vh] overflow-y-auto pr-2 scrollbar-hide"></div>
+        </div>
+    </div>
+
+    <!-- Scripts et Logique Métier -->
+    <script type="module">
+        // ==========================================
+        // 1. IMPORTATION FIREBASE & CONFIGURATION
+        // ==========================================
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Détection automatique de l'environnement (Canvas interactif vs Serveur Externe)
+        let firebaseConfig = {};
+        if (typeof __firebase_config !== 'undefined') {
+            firebaseConfig = JSON.parse(__firebase_config);
+        } else {
+            // ⚠️ REMPLACEZ CECI PAR VOS CLÉS LORS DU DÉPLOIEMENT FINAL SUR NETLIFY/VERCEL ⚠️
+            firebaseConfig = {
+                apiKey: "VOTRE_API_KEY",
+                authDomain: "votre-projet.firebaseapp.com",
+                projectId: "votre-projet",
+                storageBucket: "votre-projet.firebasestorage.app",
+                messagingSenderId: "VOTRE_SENDER_ID",
+                appId: "VOTRE_APP_ID"
+            };
+        }
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // Identifiant unique
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'yango-fleet-prod-v1';
+
+        // Variables d'état Globales
+        let fbUser = null;
+        let users = [];
+        let vehicles = [];
+        let drivers = [];
+        let revenues = [];
+        let expenses = []; 
+        
+        let loggedInUser = null;
+        let currentOwnerFilter = 'all'; 
+        let currentLedgerTab = 'all'; 
+
+        let chartFinance = null;
+        let chartFleet = null;
+        let chartTopVehicles = null;
+        let chartExpenses = null;
+
+        // Utilitaires UI personnalisés
+        window.customAlert = (message) => {
+            const overlay = document.createElement('div');
+            overlay.className = "fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[200] p-4 slide-in";
+            overlay.innerHTML = `
+                <div class="glass rounded-2xl p-6 max-w-sm w-full border border-gray-700/50 text-center shadow-2xl">
+                    <i class="fas fa-info-circle text-4xl text-blue-400 mb-4"></i>
+                    <h3 class="text-lg font-bold mb-6">${message}</h3>
+                    <button id="btnOk" class="px-6 py-2 bg-yango-yellow text-black hover:bg-yellow-400 rounded-lg font-medium transition-colors">OK</button>
+                </div>`;
+            document.body.appendChild(overlay);
+            document.getElementById('btnOk').onclick = () => document.body.removeChild(overlay);
+        };
+
+        window.customConfirm = (message, callback) => {
+            const overlay = document.createElement('div');
+            overlay.className = "fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[200] p-4 slide-in";
+            overlay.innerHTML = `
+                <div class="glass rounded-2xl p-6 max-w-sm w-full border border-gray-700/50 text-center shadow-2xl">
+                    <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
+                    <h3 class="text-lg font-bold mb-6">${message}</h3>
+                    <div class="flex gap-4 justify-center">
+                        <button id="btnCancel" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg font-medium transition-colors text-white">Annuler</button>
+                        <button id="btnConfirm" class="px-4 py-2 bg-red-500 hover:bg-red-400 text-white rounded-lg font-medium transition-colors">Confirmer</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(overlay);
+            document.getElementById('btnCancel').onclick = () => document.body.removeChild(overlay);
+            document.getElementById('btnConfirm').onclick = () => {
+                document.body.removeChild(overlay);
+                callback();
+            };
+        };
+
+        // ==========================================
+        // 2. AUTHENTIFICATION & ÉCOUTEURS FIREBASE
+        // ==========================================
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Firebase Auth Error:", error);
+                document.getElementById('loginError').textContent = "Erreur de connexion serveur.";
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        };
+
+        const getColRef = (colName) => collection(db, 'artifacts', appId, 'public', 'data', colName);
+
+        function setupListeners() {
+            if (!fbUser) return;
+
+            // Chargement des Utilisateurs
+            onSnapshot(getColRef('users'), async (snapshot) => {
+                users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                if(users.length === 0) {
+                    await addDoc(getColRef('users'), { username: 'admin', pass: 'admin123', role: 'admin', name: 'Super Admin' });
+                    await addDoc(getColRef('users'), { username: 'propa', pass: 'prop123', role: 'owner', name: 'Propriétaire A' });
+                    await addDoc(getColRef('users'), { username: 'propb', pass: 'prop123', role: 'owner', name: 'Propriétaire B' });
+                }
+                
+                if (loggedInUser && loggedInUser.role === 'admin') updateAdminDropdown();
+                if (loggedInUser) updateUI();
+            }, console.error);
+
+            // Chargement des Véhicules
+            onSnapshot(getColRef('vehicles'), (snapshot) => {
+                vehicles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if(loggedInUser) { updateUI(); updateCharts(); }
+            }, console.error);
+
+            // Chargement des Chauffeurs
+            onSnapshot(getColRef('drivers'), (snapshot) => {
+                drivers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if(loggedInUser) updateUI();
+            }, console.error);
+
+            // Chargement des Recettes
+            onSnapshot(getColRef('revenues'), (snapshot) => {
+                revenues = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if(loggedInUser) { updateUI(); updateCharts(); }
+            }, console.error);
+
+            // Chargement des Dépenses
+            onSnapshot(getColRef('expenses'), (snapshot) => {
+                expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if(loggedInUser) { updateUI(); updateCharts(); }
+            }, console.error);
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            fbUser = user;
+            if (user) setupListeners();
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initAuth();
+        });
+
+        // ==========================================
+        // 3. LOGIQUE INTERNE (LOGIN APP)
+        // ==========================================
+        window.handleLogin = (e) => {
+            e.preventDefault();
+            const userIn = document.getElementById('loginUser').value.trim();
+            const passIn = document.getElementById('loginPass').value.trim();
+            const errorDiv = document.getElementById('loginError');
+
+            const user = users.find(u => u.username === userIn && u.pass === passIn);
+
+            if (user) {
+                errorDiv.classList.add('hidden');
+                loggedInUser = user;
+                launchApp();
+            } else {
+                errorDiv.textContent = users.length === 0 ? "Initialisation de la base... Veuillez réessayer." : "Identifiants incorrects.";
+                errorDiv.classList.remove('hidden');
+            }
+        };
+
+        window.logout = () => {
+            loggedInUser = null;
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('loginForm').reset();
+        };
+
+        function launchApp() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            const adminContainer = document.getElementById('adminFilterContainer');
+            const adminNavBtn = document.getElementById('adminNavBtn');
+            document.getElementById('headerUserName').innerHTML = `Bienvenue, <span class="text-yango-yellow">${loggedInUser.name}</span>`;
+            document.getElementById('sidebarRoleLabel').textContent = loggedInUser.role === 'admin' ? 'Super Administrateur' : 'Propriétaire de Parc';
+
+            if(loggedInUser.role === 'admin') {
+                adminContainer.classList.remove('hidden');
+                adminContainer.classList.add('flex');
+                adminNavBtn.classList.remove('hidden');
+                updateAdminDropdown();
+                currentOwnerFilter = document.getElementById('ownerFilter').value;
+            } else {
+                adminContainer.classList.add('hidden');
+                adminContainer.classList.remove('flex');
+                adminNavBtn.classList.add('hidden');
+                currentOwnerFilter = loggedInUser.id; 
+            }
+            
+            showSection('dashboard');
+            updateTitle();
+            updateUI();
+            
+            if(!chartFinance) initCharts();
+            else updateCharts();
+        }
+
+        // ==========================================
+        // 4. NAVIGATION ET FILTRES
+        // ==========================================
+        window.changeOwnerFilter = (ownerId) => {
+            if(loggedInUser.role !== 'admin') return;
+            currentOwnerFilter = ownerId;
+            updateTitle();
+            updateUI();
+            updateCharts();
+        };
+
+        function updateTitle() {
+            const title = document.getElementById('dashTitle');
+            if(currentOwnerFilter === 'all') title.textContent = "Vue d'ensemble Globale";
+            else title.textContent = "Vue du Parc : " + getOwnerName(currentOwnerFilter);
+        }
+
+        window.showSection = (section) => {
+            document.querySelectorAll('#contentArea > div').forEach(div => div.classList.add('hidden'));
+            document.getElementById(section).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-yango-yellow/10', 'text-yango-yellow', 'border-yango-yellow/20');
+                btn.classList.add('text-gray-300');
+            });
+            event.currentTarget.classList.add('bg-yango-yellow/10', 'text-yango-yellow', 'border-yango-yellow/20');
+            event.currentTarget.classList.remove('text-gray-300');
+            
+            if(section === 'dashboard') updateCharts();
+        };
+
+        window.switchFinanceTab = (tab) => {
+            currentLedgerTab = tab;
+            document.getElementById('tabAll').className = tab === 'all' ? 'text-yango-yellow font-bold border-b-2 border-yango-yellow pb-2 px-2 transition-all' : 'text-gray-400 hover:text-white pb-2 px-2 transition-all';
+            document.getElementById('tabRev').className = tab === 'revenues' ? 'text-yango-yellow font-bold border-b-2 border-yango-yellow pb-2 px-2 transition-all' : 'text-gray-400 hover:text-white pb-2 px-2 transition-all';
+            document.getElementById('tabExp').className = tab === 'expenses' ? 'text-yango-yellow font-bold border-b-2 border-yango-yellow pb-2 px-2 transition-all' : 'text-gray-400 hover:text-white pb-2 px-2 transition-all';
+            updateUI(); 
+        };
+
+        // EXPORT EXCEL & PDF
+        window.exportToCSV = () => {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Date;Motif/Type;Véhicule;Description;Montant;Impact Net\n";
+            
+            const rows = document.querySelectorAll("#ledgerTable tr");
+            rows.forEach(row => {
+                if(row.innerText.includes("Aucune opération")) return;
+                const cols = row.querySelectorAll("td");
+                if(cols.length > 0) {
+                    const date = cols[0].innerText;
+                    const motif = cols[1].innerText;
+                    const veh = cols[2].innerText;
+                    const desc = cols[3].innerText;
+                    const brut = cols[4].innerText.replace(/ F/g, '').replace(/\s/g, '');
+                    const net = cols[5].innerText.replace(/ F/g, '').replace(/\s/g, '').replace(/\+/g, '');
+                    csvContent += `${date};"${motif}";"${veh}";"${desc}";${brut};${net}\n`;
+                }
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "extrait_financier_yango.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        window.exportToPDF = () => {
+            const element = document.getElementById('ledgerExportArea');
+            const printTitle = element.querySelector('.print-only');
+            if(printTitle) printTitle.style.display = 'block';
+            
+            const opt = {
+                margin:       0.5,
+                filename:     'Extrait_Financier_Yango.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                if(printTitle) printTitle.style.display = 'none';
+            });
+        };
+
+        // ==========================================
+        // 5. GESTION DES MODALES (FORMULAIRES CRUD)
+        // ==========================================
+        window.openModal = (type, dataId = null) => {
+            const modal = document.getElementById('modal');
+            const title = document.getElementById('modalTitle');
+            const content = document.getElementById('modalContent');
+            
+            let ownerSelectHtml = '';
+            if(loggedInUser.role === 'admin') {
+                const opts = users.filter(u => u.role !== 'admin').map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+                ownerSelectHtml = `
+                    <label class="text-xs text-gray-400">Propriétaire assigné</label>
+                    <select id="formOwnerId" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white mb-3">
+                        <option value="">-- Choisir --</option>${opts}
+                    </select>`;
+            }
+
+            const availableVehicles = (currentOwnerFilter === 'all') ? vehicles : vehicles.filter(v => v.ownerId === currentOwnerFilter);
+            const vehOpts = availableVehicles.map(v => `<option value="${v.plate}">${v.brand} (${v.plate})</option>`).join('');
+
+            if (type === 'addRevenue') {
+                title.innerHTML = '<i class="fas fa-plus-circle text-green-400 mr-2"></i> Ajouter Recette';
+                content.innerHTML = `
+                    <form onsubmit="saveRevenue(event)" class="space-y-4">
+                        <div><label class="text-xs text-gray-400">Date</label><input type="date" id="revDate" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <div><label class="text-xs text-gray-400">Véhicule</label><select id="revVehicle" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">${vehOpts || '<option value="">Aucun véhicule</option>'}</select></div>
+                        <div><label class="text-xs text-gray-400">Motif de la recette</label><input type="text" id="revMotif" required placeholder="Ex: Recette journalière, Location..." class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <div><label class="text-xs text-gray-400">Recette Brute (FCFA)</label><input type="number" id="revBrut" required placeholder="Ex: 35000" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <button type="submit" class="w-full py-3 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 mt-4">Enregistrer Recette</button>
+                    </form>
+                `;
+            } else if (type === 'addExpense') {
+                title.innerHTML = '<i class="fas fa-minus-circle text-red-400 mr-2"></i> Ajouter Dépense';
+                content.innerHTML = `
+                    <form onsubmit="saveExpense(event)" class="space-y-4">
+                        <div><label class="text-xs text-gray-400">Date</label><input type="date" id="expDate" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <div><label class="text-xs text-gray-400">Véhicule concerné</label><select id="expVehicle" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">${vehOpts || '<option value="">Aucun véhicule</option>'}</select></div>
+                        <div>
+                            <label class="text-xs text-gray-400">Motif de la dépense</label>
+                            <select id="expType" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                                <option value="Carburant">Carburant</option>
+                                <option value="Entretien / Garage">Entretien / Garage</option>
+                                <option value="Pièces de rechange">Pièces de rechange</option>
+                                <option value="Assurance / Visite">Assurance / Visite</option>
+                                <option value="Amende / Police">Amende / Police</option>
+                                <option value="Autre">Autre</option>
+                            </select>
+                        </div>
+                        <div><label class="text-xs text-gray-400">Montant (FCFA)</label><input type="number" id="expAmount" required placeholder="Ex: 25000" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <div><label class="text-xs text-gray-400">Description / Note</label><input type="text" id="expDesc" placeholder="Détails (ex: Changement plaquettes frein)" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <button type="submit" class="w-full py-3 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 mt-4">Enregistrer Dépense</button>
+                    </form>
+                `;
+            } else if (type === 'addVehicle') {
+                title.textContent = 'Ajouter un Véhicule';
+                content.innerHTML = `
+                    <form onsubmit="saveVehicle(event)" class="space-y-3">
+                        ${ownerSelectHtml}
+                        <input type="text" id="vBrand" placeholder="Marque & Modèle (ex: Toyota Corolla)" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                        <input type="text" id="vPlate" placeholder="Immatriculation" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                        
+                        <div class="border-t border-gray-700 pt-3 mt-2">
+                            <p class="text-xs text-yango-yellow font-bold mb-2 uppercase">Échéances Administratives (Optionnel)</p>
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div><label class="text-xs text-gray-400">Assurance</label><input type="date" id="vIns" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
+                                <div><label class="text-xs text-gray-400">Visite Tech.</label><input type="date" id="vTech" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div><label class="text-xs text-gray-400">Patente / VTC</label><input type="date" id="vPat" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
+                                <div><label class="text-xs text-gray-400">Taxe Mairie</label><input type="date" id="vTax" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
+                            </div>
+                            <div><label class="text-xs text-gray-400">Extincteur</label><input type="date" id="vExt" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
+                        </div>
+                        
+                        <select id="vStatus" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white mt-3">
+                            <option value="actif">Actif (En Course)</option>
+                            <option value="inactif">Inactif / En Attente</option>
+                            <option value="maintenance">En Maintenance</option>
+                        </select>
+                        <button type="submit" class="w-full py-2 bg-yango-yellow text-black rounded-lg font-medium hover:bg-yellow-400">Enregistrer Véhicule</button>
+                    </form>
+                `;
+            } else if (type === 'editVehicle') {
+                const vehicle = vehicles.find(v => v.id === dataId);
+                title.textContent = 'Modifier un Véhicule';
+                content.innerHTML = `
+                    <form onsubmit="updateVehicle(event, '${vehicle.id}')" class="space-y-3">
+                        <input type="text" id="editVBrand" value="${vehicle.brand}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                        <input type="text" id="editVPlate" value="${vehicle.plate}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                        <select id="editVStatus" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                            <option value="actif" ${vehicle.status === 'actif' ? 'selected' : ''}>Actif (En Course)</option>
+                            <option value="inactif" ${vehicle.status === 'inactif' ? 'selected' : ''}>Inactif / En Attente</option>
+                            <option value="maintenance" ${vehicle.status === 'maintenance' ? 'selected' : ''}>En Maintenance</option>
+                        </select>
+                        <button type="submit" class="w-full py-2 bg-yango-yellow text-black rounded-lg font-medium hover:bg-yellow-400">Mettre à jour Véhicule</button>
+                    </form>
+                `;
+            } else if (type === 'editDocuments') {
+                const vehicle = vehicles.find(v => v.id === dataId);
+                title.innerHTML = `<i class="fas fa-file-contract text-blue-400 mr-2"></i> Documents : ${vehicle.plate}`;
+                content.innerHTML = `
+                    <form onsubmit="updateDocuments(event, '${vehicle.id}')" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs text-gray-400">Assurance</label>
+                                <input type="date" id="editIns" value="${vehicle.insuranceExpiry || ''}" class="w-full mt-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white">
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-400">Visite Technique</label>
+                                <input type="date" id="editTech" value="${vehicle.techVisitExpiry || ''}" class="w-full mt-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs text-gray-400">Patente / Carte VTC</label>
+                                <input type="date" id="editPat" value="${vehicle.licenseExpiry || ''}" class="w-full mt-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white">
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-400">Taxe Mairie</label>
+                                <input type="date" id="editTax" value="${vehicle.cityTaxExpiry || ''}" class="w-full mt-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400">Extincteur</label>
+                            <input type="date" id="editExt" value="${vehicle.extinguisherExpiry || ''}" class="w-full mt-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white">
+                        </div>
+                        <button type="submit" class="w-full py-3 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600">Enregistrer les Échéances</button>
+                    </form>
+                `;
+            } else if (type === 'addDriver') {
+                title.textContent = 'Ajouter un Chauffeur';
+                content.innerHTML = `
+                    <form onsubmit="saveDriver(event)" class="space-y-3">
+                        ${ownerSelectHtml}
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="text-xs text-gray-400">Nom</label><input type="text" id="dLastName" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                            <div><label class="text-xs text-gray-400">Prénoms</label><input type="text" id="dFirstName" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        </div>
+                        <div><label class="text-xs text-gray-400">Lieu d'habitation</label><input type="text" id="dAddress" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <div><label class="text-xs text-gray-400">Numéro de téléphone</label><input type="text" id="dPhone" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="text-xs text-gray-400">N° Pièce d'identité</label><input type="text" id="dIdCard" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                            <div><label class="text-xs text-gray-400">N° Permis</label><input type="text" id="dLicense" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        </div>
+                        <div class="border-t border-gray-700 pt-3 mt-2">
+                            <p class="text-xs text-yango-yellow font-bold mb-2 uppercase">Échéances Santé (Optionnel)</p>
+                            <div><label class="text-xs text-gray-400">Expiration Visite Médicale</label><input type="date" id="dMed" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
+                        </div>
+                        <button type="submit" class="w-full py-2 bg-yango-yellow text-black rounded-lg font-medium hover:bg-yellow-400 mt-3">Enregistrer Chauffeur</button>
+                    </form>
+                `;
+            } else if (type === 'editDriver') {
+                const driver = drivers.find(d => d.id === dataId);
+                title.textContent = 'Modifier un Chauffeur';
+                content.innerHTML = `
+                    <form onsubmit="updateDriver(event, '${driver.id}')" class="space-y-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="text-xs text-gray-400">Nom</label><input type="text" id="editDLastName" value="${driver.lastName}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                            <div><label class="text-xs text-gray-400">Prénoms</label><input type="text" id="editDFirstName" value="${driver.firstName}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        </div>
+                        <div><label class="text-xs text-gray-400">Lieu d'habitation</label><input type="text" id="editDAddress" value="${driver.address}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <div><label class="text-xs text-gray-400">Numéro de téléphone</label><input type="text" id="editDPhone" value="${driver.phone}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="text-xs text-gray-400">N° Pièce d'identité</label><input type="text" id="editDIdCard" value="${driver.idCard}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                            <div><label class="text-xs text-gray-400">N° Permis</label><input type="text" id="editDLicense" value="${driver.license}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        </div>
+                        <button type="submit" class="w-full py-2 bg-yango-yellow text-black rounded-lg font-medium hover:bg-yellow-400">Mettre à jour Chauffeur</button>
+                    </form>
+                `;
+            } else if (type === 'editDriverDocs') {
+                const driver = drivers.find(d => d.id === dataId);
+                title.innerHTML = `<i class="fas fa-notes-medical text-blue-400 mr-2"></i> Santé : ${driver.firstName} ${driver.lastName}`;
+                content.innerHTML = `
+                    <form onsubmit="updateDriverDocs(event, '${driver.id}')" class="space-y-4">
+                        <div>
+                            <label class="text-sm text-gray-400">Expiration Visite Médicale</label>
+                            <input type="date" id="editMed" value="${driver.medicalVisitExpiry || ''}" class="w-full mt-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white">
+                        </div>
+                        <button type="submit" class="w-full py-3 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600">Mettre à jour</button>
+                    </form>
+                `;
+            } else if (type === 'addOwner') {
+                title.textContent = 'Ajouter un Propriétaire (Admin)';
+                content.innerHTML = `
+                    <form onsubmit="saveOwner(event)" class="space-y-3">
+                        <input type="text" id="oName" placeholder="Nom complet du propriétaire" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                        <input type="text" id="oUser" placeholder="Identifiant de connexion" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                        <input type="text" id="oPass" placeholder="Mot de passe" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                        <button type="submit" class="w-full py-2 bg-purple-500 text-white rounded-lg font-medium hover:bg-purple-600">Créer Compte</button>
+                    </form>
+                `;
+            }
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.closeModal = () => {
+            document.getElementById('modal').classList.add('hidden');
+            document.getElementById('modal').classList.remove('flex');
+        };
+
+        // ==========================================
+        // 6. SAUVEGARDES FIREBASE (CRUD)
+        // ==========================================
+        function resolveOwnerId() {
+            if(loggedInUser.role === 'admin') {
+                return document.getElementById('formOwnerId').value;
+            }
+            return loggedInUser.id;
+        }
+
+        window.saveOwner = async (e) => {
+            e.preventDefault();
+            if(!fbUser) return;
+            const data = { 
+                role: 'owner',
+                name: document.getElementById('oName').value,
+                username: document.getElementById('oUser').value,
+                pass: document.getElementById('oPass').value
+            };
+            await addDoc(getColRef('users'), data);
+            closeModal();
+            customAlert("Compte propriétaire créé avec succès !");
+        };
+
+        window.saveVehicle = async (e) => {
+            e.preventDefault();
+            if(!fbUser) return;
+            const ownerId = resolveOwnerId();
+            if(!ownerId) return customAlert("Propriétaire non défini.");
+            
+            const data = {
+                ownerId: ownerId,
+                brand: document.getElementById('vBrand').value,
+                plate: document.getElementById('vPlate').value,
+                status: document.getElementById('vStatus').value,
+                insuranceExpiry: document.getElementById('vIns').value || null,
+                techVisitExpiry: document.getElementById('vTech').value || null,
+                licenseExpiry: document.getElementById('vPat').value || null,
+                cityTaxExpiry: document.getElementById('vTax').value || null,
+                extinguisherExpiry: document.getElementById('vExt').value || null,
+                driver: "Non assigné",
+                timestamp: new Date().getTime()
+            };
+            await addDoc(getColRef('vehicles'), data);
+            closeModal();
+        };
+
+        window.updateVehicle = async (e, id) => {
+            e.preventDefault();
+            if(!fbUser) return;
+            const data = {
+                brand: document.getElementById('editVBrand').value,
+                plate: document.getElementById('editVPlate').value,
+                status: document.getElementById('editVStatus').value
+            };
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', id), data);
+            closeModal();
+        };
+
+        window.updateDocuments = async (e, id) => {
+            e.preventDefault();
+            if(!fbUser) return;
+            const data = {
+                insuranceExpiry: document.getElementById('editIns').value || null,
+                techVisitExpiry: document.getElementById('editTech').value || null,
+                licenseExpiry: document.getElementById('editPat').value || null,
+                cityTaxExpiry: document.getElementById('editTax').value || null,
+                extinguisherExpiry: document.getElementById('editExt').value || null
+            };
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', id), data);
+            closeModal();
+            customAlert("Dates d'échéance mises à jour !");
+        };
+
+        window.deleteVehicle = (id) => {
+            if(!fbUser) return;
+            customConfirm("Êtes-vous sûr de vouloir supprimer ce véhicule ?", async () => {
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', id));
+            });
+        };
+
+        window.saveDriver = async (e) => {
+            e.preventDefault();
+            if(!fbUser) return;
+            const ownerId = resolveOwnerId();
+            if(!ownerId) return customAlert("Propriétaire non défini.");
+            
+            const data = {
+                ownerId: ownerId,
+                lastName: document.getElementById('dLastName').value,
+                firstName: document.getElementById('dFirstName').value,
+                address: document.getElementById('dAddress').value,
+                phone: document.getElementById('dPhone').value,
+                idCard: document.getElementById('dIdCard').value,
+                license: document.getElementById('dLicense').value,
+                medicalVisitExpiry: document.getElementById('dMed').value || null,
+                status: "actif",
+                timestamp: new Date().getTime()
+            };
+            await addDoc(getColRef('drivers'), data);
+            closeModal();
+        };
+
+        window.updateDriver = async (e, id) => {
+            e.preventDefault();
+            if(!fbUser) return;
+            const data = {
+                lastName: document.getElementById('editDLastName').value,
+                firstName: document.getElementById('editDFirstName').value,
+                address: document.getElementById('editDAddress').value,
+                phone: document.getElementById('editDPhone').value,
+                idCard: document.getElementById('editDIdCard').value,
+                license: document.getElementById('editDLicense').value
+            };
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drivers', id), data);
+            closeModal();
+        };
+
+        window.deleteDriver = (id) => {
+            if(!fbUser) return;
+            customConfirm("Êtes-vous sûr de vouloir supprimer ce chauffeur ?", async () => {
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drivers', id));
+            });
+        };
+
+        window.updateDriverDocs = async (e, id) => {
+            e.preventDefault();
+            if(!fbUser) return;
+            const data = {
+                medicalVisitExpiry: document.getElementById('editMed').value || null
+            };
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drivers', id), data);
+            closeModal();
+            customAlert("Dossier médical mis à jour !");
+        };
+
+        window.saveRevenue = async (e) => {
+            e.preventDefault();
+            if(!fbUser) return;
+            const plate = document.getElementById('revVehicle').value;
+            const veh = vehicles.find(v => v.plate === plate);
+            if(!veh) return customAlert("Erreur: Véhicule inconnu.");
+
+            const brut = parseFloat(document.getElementById('revBrut').value);
+            const data = {
+                ownerId: veh.ownerId,
+                date: document.getElementById('revDate').value,
+                vehicle: plate,
+                motif: document.getElementById('revMotif').value,
+                brut: brut,
+                timestamp: new Date().getTime()
+            };
+            await addDoc(getColRef('revenues'), data);
+            closeModal();
+        };
+
+        window.saveExpense = async (e) => {
+            e.preventDefault();
+            if(!fbUser) return;
+            const plate = document.getElementById('expVehicle').value;
+            const veh = vehicles.find(v => v.plate === plate);
+            if(!veh) return customAlert("Erreur: Véhicule inconnu.");
+
+            const data = {
+                ownerId: veh.ownerId,
+                date: document.getElementById('expDate').value,
+                vehicle: plate,
+                type: document.getElementById('expType').value,
+                amount: parseFloat(document.getElementById('expAmount').value),
+                description: document.getElementById('expDesc').value,
+                timestamp: new Date().getTime()
+            };
+            await addDoc(getColRef('expenses'), data);
+            closeModal();
+        };
+
+        window.deleteLedgerItem = (type, id) => {
+            if(!fbUser) return;
+            customConfirm("Supprimer cette opération ? Cette action est irréversible.", async () => {
+                const col = type === 'rev' ? 'revenues' : 'expenses';
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', col, id));
+            });
+        };
+
+        // ==========================================
+        // 7. GESTION DES DATES & ALERTES DOCUMENTS
+        // ==========================================
+        function getDocStatus(dateString) {
+            if (!dateString) return { state: 'empty', label: 'Non défini', bg: 'bg-gray-800', text: 'text-gray-500' };
+            
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const expDate = new Date(dateString);
+            const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+
+            if (diffDays <= 0) return { state: 'expired', label: 'Expiré', bg: 'bg-red-500/20 border border-red-500/50', text: 'text-red-400 font-bold' };
+            if (diffDays <= 30) return { state: 'warning', label: `J-${diffDays}`, bg: 'bg-orange-500/20 border border-orange-500/50', text: 'text-orange-400 font-bold' };
+            return { state: 'valid', label: 'Valide', bg: 'bg-green-500/10 border border-green-500/30', text: 'text-green-400' };
+        }
+
+        // ==========================================
+        // 8. MISE À JOUR DE L'INTERFACE (UI)
+        // ==========================================
+        
+        function getOwnerName(id) {
+            const u = users.find(u => u.id === id);
+            return u ? u.name : 'Inconnu';
+        }
+
+        function updateAdminDropdown() {
+            const select = document.getElementById('ownerFilter');
+            const currentVal = select.value;
+            select.innerHTML = `<option value="all">🌐 Tous les parcs</option>` + 
+                users.filter(u => u.role !== 'admin').map(o => `<option value="${o.id}">🏢 ${o.name}</option>`).join('');
+            if(users.find(u => u.id === currentVal)) select.value = currentVal;
+        }
+
+        function updateUI() {
+            const fVehicles = currentOwnerFilter === 'all' ? vehicles : vehicles.filter(v => v.ownerId === currentOwnerFilter);
+            const fDrivers = currentOwnerFilter === 'all' ? drivers : drivers.filter(d => d.ownerId === currentOwnerFilter);
+            const fRevs = currentOwnerFilter === 'all' ? revenues : revenues.filter(r => r.ownerId === currentOwnerFilter);
+            const fExps = currentOwnerFilter === 'all' ? expenses : expenses.filter(e => e.ownerId === currentOwnerFilter);
+
+            // DASHBOARD STATS
+            document.getElementById('statVehicles').textContent = fVehicles.length;
+            
+            let vehActifs = fVehicles.filter(v => v.status === 'actif').length;
+            let tauxDispo = fVehicles.length > 0 ? Math.round((vehActifs / fVehicles.length) * 100) : 0;
+            document.getElementById('statDispo').textContent = `${tauxDispo}% dispo.`;
+            document.getElementById('statDispo').className = `text-xs px-2 py-1 rounded border inline-block ${tauxDispo > 70 ? 'bg-green-900/30 text-green-400 border-green-500/30' : 'bg-red-900/30 text-red-400 border-red-500/30'}`;
+
+            let sumBrut = fRevs.reduce((acc, r) => acc + r.brut, 0);
+            let sumExpenses = fExps.reduce((acc, e) => acc + e.amount, 0);
+            let globalNet = sumBrut - sumExpenses;
+
+            document.getElementById('statRevenue').textContent = sumBrut.toLocaleString() + ' F';
+            document.getElementById('statExpenses').textContent = sumExpenses.toLocaleString() + ' F';
+            document.getElementById('statNet').textContent = globalNet.toLocaleString() + ' F';
+            if(globalNet < 0) {
+                document.getElementById('statNet').classList.replace('text-yango-yellow', 'text-red-400');
+            } else {
+                document.getElementById('statNet').classList.replace('text-red-400', 'text-yango-yellow');
+            }
+
+            // GESTION DES DOCUMENTS & ALERTES
+            let expiredCount = 0;
+            let warningCount = 0;
+            let validCount = 0;
+
+            const docsHtml = fVehicles.map(v => {
+                const insSt = getDocStatus(v.insuranceExpiry);
+                const techSt = getDocStatus(v.techVisitExpiry);
+                const patSt = getDocStatus(v.licenseExpiry);
+                const taxSt = getDocStatus(v.cityTaxExpiry);
+                const extSt = getDocStatus(v.extinguisherExpiry);
+
+                // Compteurs globaux
+                [insSt.state, techSt.state, patSt.state, taxSt.state, extSt.state].forEach(st => {
+                    if(st === 'expired') expiredCount++;
+                    if(st === 'warning') warningCount++;
+                    if(st === 'valid') validCount++;
+                });
+
+                return `
+                <tr class="hover:bg-white/5 border-b border-gray-700/50">
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-white">${v.brand}</div>
+                        <div class="text-xs text-gray-400">${v.plate}</div>
+                    </td>
+                    <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] ${insSt.bg} ${insSt.text} whitespace-nowrap">${insSt.label}</span></td>
+                    <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] ${techSt.bg} ${techSt.text} whitespace-nowrap">${techSt.label}</span></td>
+                    <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] ${patSt.bg} ${patSt.text} whitespace-nowrap">${patSt.label}</span></td>
+                    <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] ${taxSt.bg} ${taxSt.text} whitespace-nowrap">${taxSt.label}</span></td>
+                    <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] ${extSt.bg} ${extSt.text} whitespace-nowrap">${extSt.label}</span></td>
+                    <td class="px-6 py-4 text-center">
+                        <button onclick="openModal('editDocuments', '${v.id}')" class="text-blue-400 hover:text-blue-300 text-xs border border-blue-500/30 px-3 py-1.5 rounded-lg bg-blue-500/10">MàJ</button>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            document.getElementById('docsTable').innerHTML = docsHtml || `<tr><td colspan="7" class="text-center py-6 text-gray-500">Aucun véhicule enregistré.</td></tr>`;
+            
+            const driverDocsHtml = fDrivers.map(d => {
+                const medSt = getDocStatus(d.medicalVisitExpiry);
+                
+                [medSt.state].forEach(st => {
+                    if(st === 'expired') expiredCount++;
+                    if(st === 'warning') warningCount++;
+                    if(st === 'valid') validCount++;
+                });
+
+                return `
+                <tr class="hover:bg-white/5 border-b border-gray-700/50">
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-white">${d.lastName} ${d.firstName}</div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-400">${d.phone}</td>
+                    <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] ${medSt.bg} ${medSt.text} whitespace-nowrap">${medSt.label}</span></td>
+                    <td class="px-6 py-4 text-center">
+                        <button onclick="openModal('editDriverDocs', '${d.id}')" class="text-blue-400 hover:text-blue-300 text-xs border border-blue-500/30 px-3 py-1.5 rounded-lg bg-blue-500/10">MàJ</button>
+                    </td>
+                </tr>`;
+            }).join('');
+            
+            document.getElementById('driverDocsTable').innerHTML = driverDocsHtml || `<tr><td colspan="4" class="text-center py-6 text-gray-500">Aucun chauffeur enregistré.</td></tr>`;
+
+            // Mise à jour des badges
+            document.getElementById('docExpiredCount').textContent = expiredCount;
+            document.getElementById('docWarningCount').textContent = warningCount;
+            document.getElementById('docOkCount').textContent = validCount;
+
+            const totalAlerts = expiredCount + warningCount;
+            const navBadge = document.getElementById('navDocAlert');
+            const dashAlertsArea = document.getElementById('dashAlertsArea');
+
+            if (totalAlerts > 0) {
+                navBadge.textContent = totalAlerts;
+                navBadge.classList.remove('hidden');
+                dashAlertsArea.classList.remove('hidden');
+            } else {
+                navBadge.classList.add('hidden');
+                dashAlertsArea.classList.add('hidden');
+            }
+
+            // GRILLE VÉHICULES
+            document.getElementById('vehiclesGrid').innerHTML = fVehicles.map(v => `
+                <div class="glass rounded-2xl p-5 border border-gray-700/50 relative group transition-all">
+                    <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="openModal('editVehicle', '${v.id}')" class="text-blue-400 hover:text-blue-300 w-8 h-8 rounded-full bg-gray-800/80 flex items-center justify-center border border-gray-600" title="Modifier infos"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteVehicle('${v.id}')" class="text-red-400 hover:text-red-300 w-8 h-8 rounded-full bg-gray-800/80 flex items-center justify-center border border-gray-600" title="Supprimer"><i class="fas fa-trash"></i></button>
+                    </div>
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <span class="text-[10px] uppercase font-bold text-gray-500">${getOwnerName(v.ownerId)}</span>
+                            <h4 class="font-bold text-lg mt-1 pr-16">${v.brand}</h4>
+                            <span class="text-xs text-yango-yellow bg-gray-800 px-2 py-1 rounded border border-gray-700 inline-block mt-2">${v.plate}</span>
+                        </div>
+                        <span class="status-dot status-${v.status} mt-2"></span>
+                    </div>
+                </div>
+            `).join('');
+
+            // TABLE CHAUFFEURS
+            document.getElementById('driversTable').innerHTML = fDrivers.map(d => `
+                <tr class="hover:bg-white/5 border-b border-gray-700/50">
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-white">${d.lastName} ${d.firstName}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm text-gray-300"><i class="fas fa-phone mr-2 text-gray-500"></i>${d.phone}</div>
+                        <div class="text-xs text-gray-400 mt-1"><i class="fas fa-map-marker-alt mr-2 text-gray-500"></i>${d.address}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-xs text-gray-400">ID: <span class="text-gray-300">${d.idCard}</span></div>
+                        <div class="text-xs text-gray-400 mt-1">Permis: <span class="text-gray-300">${d.license}</span></div>
+                    </td>
+                    <td class="px-6 py-4"><span class="text-xs bg-gray-800 px-2 py-1 rounded border border-gray-700">${getOwnerName(d.ownerId)}</span></td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="openModal('editDriver', '${d.id}')" class="text-blue-400 hover:text-blue-300 mr-3" title="Modifier"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteDriver('${d.id}')" class="text-red-400 hover:text-red-300" title="Supprimer"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // GRAND LIVRE (Recettes + Dépenses)
+            let ledgerItems = [];
+            if(currentLedgerTab === 'all' || currentLedgerTab === 'revenues') {
+                fRevs.forEach(r => ledgerItems.push({...r, _type: 'rev'}));
+            }
+            if(currentLedgerTab === 'all' || currentLedgerTab === 'expenses') {
+                fExps.forEach(e => ledgerItems.push({...e, _type: 'exp'}));
+            }
+            
+            ledgerItems.sort((a,b) => b.timestamp - a.timestamp);
+
+            document.getElementById('ledgerTable').innerHTML = ledgerItems.map(item => {
+                if(item._type === 'rev') {
+                    return `
+                    <tr class="hover:bg-white/5 border-b border-gray-700/50 bg-green-900/5">
+                        <td class="px-4 py-3 text-sm">${item.date}</td>
+                        <td class="px-4 py-3"><span class="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">${item.motif}</span></td>
+                        <td class="px-4 py-3 text-sm font-medium">${item.vehicle}</td>
+                        <td class="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell">-</td>
+                        <td class="px-4 py-3 text-sm text-right text-gray-300">${item.brut.toLocaleString()} F</td>
+                        <td class="px-4 py-3 text-sm text-right font-bold text-green-400">+${item.brut.toLocaleString()} F</td>
+                        <td class="px-4 py-3 text-center no-print">
+                            <button onclick="deleteLedgerItem('rev', '${item.id}')" class="text-red-400 hover:text-red-300" title="Supprimer"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+                } else {
+                    return `
+                    <tr class="hover:bg-white/5 border-b border-gray-700/50 bg-red-900/5">
+                        <td class="px-4 py-3 text-sm">${item.date}</td>
+                        <td class="px-4 py-3"><span class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">${item.type}</span></td>
+                        <td class="px-4 py-3 text-sm font-medium">${item.vehicle}</td>
+                        <td class="px-4 py-3 text-xs text-gray-400 hidden lg:table-cell truncate max-w-[150px]">${item.description || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-right text-gray-500">-</td>
+                        <td class="px-4 py-3 text-sm text-right font-bold text-red-400">-${item.amount.toLocaleString()} F</td>
+                        <td class="px-4 py-3 text-center no-print">
+                            <button onclick="deleteLedgerItem('exp', '${item.id}')" class="text-red-400 hover:text-red-300" title="Supprimer"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+                }
+            }).join('') || `<tr><td colspan="7" class="text-center py-6 text-gray-500">Aucune opération trouvée.</td></tr>`;
+
+            // TABLE ADMIN (Propriétaires)
+            if(loggedInUser && loggedInUser.role === 'admin') {
+                document.getElementById('ownersTable').innerHTML = users.filter(u=>u.role!=='admin').map(u => {
+                    return `
+                        <tr class="border-b border-gray-700/50">
+                            <td class="px-6 py-4 text-sm font-mono text-gray-400">${u.username}</td>
+                            <td class="px-6 py-4 font-bold text-white">${u.name}</td>
+                            <td class="px-6 py-4"><span class="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded">Propriétaire</span></td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        // ==========================================
+        // 9. CHART.JS (ANALYTICS)
+        // ==========================================
+        function initCharts() {
+            const ctx1 = document.getElementById('financeChart').getContext('2d');
+            chartFinance = new Chart(ctx1, {
+                type: 'bar',
+                data: { labels: ['Recettes Brutes', 'Dépenses Totales'], datasets: [] },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' } } } }
+            });
+
+            const ctx2 = document.getElementById('fleetChart').getContext('2d');
+            chartFleet = new Chart(ctx2, {
+                type: 'doughnut',
+                data: { labels: ['Actifs', 'Maintenance', 'Inactifs'], datasets: [] },
+                options: { responsive: true, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { color: '#fff' } } } }
+            });
+
+            const ctx3 = document.getElementById('topVehiclesChart').getContext('2d');
+            chartTopVehicles = new Chart(ctx3, {
+                type: 'bar',
+                data: { labels: [], datasets: [] },
+                options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.05)' } } } }
+            });
+
+            const ctx4 = document.getElementById('expensesChart').getContext('2d');
+            chartExpenses = new Chart(ctx4, {
+                type: 'pie',
+                data: { labels: [], datasets: [] },
+                options: { responsive: true, plugins: { legend: { position: 'right', labels: { color: '#fff' } } } }
+            });
+
+            updateCharts();
+        }
+
+        function updateCharts() {
+            if(!chartFinance) return;
+            
+            const fVehicles = currentOwnerFilter === 'all' ? vehicles : vehicles.filter(v => v.ownerId === currentOwnerFilter);
+            const fRevs = currentOwnerFilter === 'all' ? revenues : revenues.filter(r => r.ownerId === currentOwnerFilter);
+            const fExps = currentOwnerFilter === 'all' ? expenses : expenses.filter(e => e.ownerId === currentOwnerFilter);
+            
+            // 1. Finance Bar
+            let sumNetRev = fRevs.reduce((acc, r) => acc + r.brut, 0);
+            let sumExp = fExps.reduce((acc, e) => acc + e.amount, 0);
+
+            chartFinance.data = {
+                labels: ['Recettes', 'Dépenses'],
+                datasets: [{
+                    data: [sumNetRev, sumExp],
+                    backgroundColor: ['#22c55e', '#ef4444'],
+                    borderRadius: 4
+                }]
+            };
+            chartFinance.update();
+
+            // 2. Donuts Flotte
+            const vActif = fVehicles.filter(v => v.status === 'actif').length;
+            const vMaint = fVehicles.filter(v => v.status === 'maintenance').length;
+            const vInactif = fVehicles.filter(v => v.status === 'inactif').length;
+
+            chartFleet.data.datasets = [{ data: [vActif, vMaint, vInactif], backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'], borderWidth: 0 }];
+            chartFleet.update();
+
+            // 3. Top Vehicles
+            let vehStats = fVehicles.map(v => {
+                let vRev = fRevs.filter(r => r.vehicle === v.plate).reduce((s, r) => s + r.brut, 0);
+                let vExp = fExps.filter(e => e.vehicle === v.plate).reduce((s, e) => s + e.amount, 0);
+                return { plate: v.plate, net: vRev - vExp };
+            }).sort((a,b) => b.net - a.net).slice(0, 5);
+
+            chartTopVehicles.data = {
+                labels: vehStats.map(v => v.plate),
+                datasets: [{
+                    label: 'Net Généré',
+                    data: vehStats.map(v => v.net),
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 4
+                }]
+            };
+            chartTopVehicles.update();
+
+            // 4. Expenses Breakdown
+            let expGrouped = {};
+            fExps.forEach(e => {
+                expGrouped[e.type] = (expGrouped[e.type] || 0) + e.amount;
+            });
+            const expLabels = Object.keys(expGrouped);
+            const expData = Object.values(expGrouped);
+            const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899'];
+
+            chartExpenses.data = {
+                labels: expLabels.length ? expLabels : ['Aucune dépense'],
+                datasets: [{
+                    data: expData.length ? expData : [1],
+                    backgroundColor: expData.length ? colors.slice(0, expLabels.length) : ['#374151'],
+                    borderWidth: 0
+                }]
+            };
+            chartExpenses.update();
+        }
+    </script>
+</body>
+</html>
