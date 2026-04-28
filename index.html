@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yango Fleet Manager - Sécurisé & Complet</title>
+    <title>Yango Fleet Manager - Advanced SaaS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <!-- Librairie pour l'export PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -32,7 +31,6 @@
         .loader { border: 3px solid rgba(255,255,255,0.1); border-radius: 50%; border-top: 3px solid #FFD700; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* Styles d'impression (PDF) */
         @media print {
             body { background: white; color: black; }
             .glass { background: none; border: 1px solid #ccc; filter: none; }
@@ -44,21 +42,21 @@
 </head>
 <body class="gradient-bg text-gray-100 min-h-screen relative">
 
-    <!-- ================= ÉCRAN DE CONNEXION ================= -->
+    <!-- ================= ÉCRAN DE CONNEXION (Sécurisé) ================= -->
     <div id="loginScreen" class="absolute inset-0 z-50 flex items-center justify-center bg-gray-900/95 backdrop-blur-md">
-        <div class="glass rounded-2xl p-8 max-w-sm w-full border border-gray-700/50 slide-in text-center">
+        <div class="glass rounded-2xl p-8 max-w-sm w-full border border-gray-700/50 slide-in text-center shadow-2xl">
             <div class="w-16 h-16 bg-yango-yellow rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-yellow-500/20">
                 <i class="fas fa-taxi text-black text-3xl"></i>
             </div>
-            <h2 class="text-2xl font-bold mb-2">Yango Fleet</h2>
-            <p class="text-gray-400 text-sm mb-6">Connectez-vous à votre espace</p>
+            <h2 class="text-2xl font-bold mb-2">Yango Fleet PRO</h2>
+            <p class="text-gray-400 text-sm mb-6">Connexion sécurisée par Email</p>
             
             <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4 text-left">
                 <div>
-                    <label class="text-sm text-gray-400 block mb-1">Identifiant</label>
+                    <label class="text-sm text-gray-400 block mb-1">Email</label>
                     <div class="relative">
-                        <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
-                        <input type="text" id="loginUser" required class="w-full pl-10 pr-3 py-2.5 bg-gray-800 border border-gray-600 rounded-xl text-sm focus:outline-none focus:border-yango-yellow transition-colors" placeholder="Ex: admin ou propa">
+                        <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                        <input type="email" id="loginEmail" required class="w-full pl-10 pr-3 py-2.5 bg-gray-800 border border-gray-600 rounded-xl text-sm focus:outline-none focus:border-yango-yellow transition-colors" placeholder="admin@fleet.com">
                     </div>
                 </div>
                 <div>
@@ -68,9 +66,10 @@
                         <input type="password" id="loginPass" required class="w-full pl-10 pr-3 py-2.5 bg-gray-800 border border-gray-600 rounded-xl text-sm focus:outline-none focus:border-yango-yellow transition-colors" placeholder="••••••••">
                     </div>
                 </div>
-                <div id="loginError" class="text-red-400 text-xs hidden text-center">Identifiants incorrects.</div>
-                <button type="submit" class="w-full py-3 mt-2 bg-yango-yellow text-black rounded-xl font-bold hover:bg-yellow-400 transition-colors shadow-lg shadow-yellow-500/20">
-                    Se connecter
+                <div id="loginError" class="text-red-400 text-xs hidden text-center bg-red-500/10 p-2 rounded border border-red-500/30"></div>
+                <button type="submit" id="btnLoginSubmit" class="w-full py-3 mt-2 bg-yango-yellow text-black rounded-xl font-bold hover:bg-yellow-400 transition-all shadow-lg shadow-yellow-500/20 flex justify-center items-center">
+                    <span id="loginBtnText">Se connecter</span>
+                    <div id="loginSpinner" class="loader hidden ml-2 border-black border-t-transparent"></div>
                 </button>
             </form>
         </div>
@@ -83,33 +82,39 @@
             <div class="p-6 border-b border-gray-700/50">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-yango-yellow rounded-lg flex items-center justify-center">
-                        <i class="fas fa-taxi text-black text-lg"></i>
+                        <i class="fas fa-bolt text-black text-lg"></i>
                     </div>
                     <div>
-                        <h1 class="font-bold text-lg tracking-tight">Fleet Multi</h1>
+                        <h1 class="font-bold text-lg tracking-tight">Fleet PRO</h1>
                         <p class="text-xs text-gray-400" id="sidebarRoleLabel">Chargement...</p>
                     </div>
                 </div>
             </div>
-            <nav class="flex-1 p-4 space-y-1">
+            <nav class="flex-1 p-4 space-y-1 overflow-y-auto scrollbar-hide">
                 <button onclick="showSection('dashboard')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-yango-yellow/10 text-yango-yellow border border-yango-yellow/20 transition-all">
                     <i class="fas fa-chart-line w-5"></i><span class="font-medium">Tableau de Bord</span>
                 </button>
                 <button onclick="showSection('vehicles')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all">
-                    <i class="fas fa-car w-5"></i><span class="font-medium">Flotte (Stock)</span>
+                    <i class="fas fa-car w-5"></i><span class="font-medium">Flotte & Assignation</span>
                 </button>
                 <button onclick="showSection('drivers')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all">
-                    <i class="fas fa-user-tie w-5"></i><span class="font-medium">Chauffeurs</span>
+                    <i class="fas fa-users w-5"></i><span class="font-medium">Chauffeurs & Score</span>
+                </button>
+                <button onclick="showSection('versements')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all">
+                    <i class="fas fa-hand-holding-usd w-5"></i><span class="font-medium">Versements</span>
+                </button>
+                <button onclick="showSection('maintenance')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all">
+                    <i class="fas fa-tools w-5"></i><span class="font-medium">Maintenance & Fuel</span>
                 </button>
                 <button onclick="showSection('documents')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all relative">
                     <i class="fas fa-file-contract w-5"></i><span class="font-medium">Admin & Alertes</span>
-                    <span id="navDocAlert" class="absolute right-4 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full hidden">0</span>
+                    <span id="navDocAlert" class="absolute right-4 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full hidden shadow-[0_0_10px_rgba(239,68,68,0.8)]">0</span>
                 </button>
                 <button onclick="showSection('finance')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all">
-                    <i class="fas fa-wallet w-5"></i><span class="font-medium">Finances & Dépenses</span>
+                    <i class="fas fa-wallet w-5"></i><span class="font-medium">Rapports Financiers</span>
                 </button>
                 <button id="adminNavBtn" onclick="showSection('admin')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all hidden">
-                    <i class="fas fa-users-cog w-5"></i><span class="font-medium">Administration</span>
+                    <i class="fas fa-shield-alt w-5"></i><span class="font-medium">Sécurité & Accès</span>
                 </button>
             </nav>
             <div class="p-4 border-t border-gray-700/50">
@@ -121,7 +126,7 @@
 
         <!-- Main Content -->
         <main class="flex-1 flex flex-col overflow-hidden relative z-10">
-            <!-- Header avec Sélecteur de Propriétaire -->
+            <!-- Header -->
             <header class="glass border-b border-gray-700/50 px-6 py-4 flex flex-wrap gap-4 items-center justify-between no-print">
                 <div class="flex items-center gap-4">
                     <button class="md:hidden text-white" onclick="document.querySelector('aside').classList.toggle('hidden')">
@@ -130,17 +135,14 @@
                     <h2 class="text-xl font-bold hidden sm:block" id="headerUserName">Bienvenue</h2>
                 </div>
                 <div class="flex items-center gap-4">
-                    <!-- Filtre global (Visible uniquement par l'admin) -->
                     <div id="adminFilterContainer" class="hidden items-center gap-2 bg-gray-800/50 p-1.5 rounded-xl border border-gray-600/50">
-                        <span class="text-xs text-gray-400 pl-2 hidden sm:inline"><i class="fas fa-filter mr-1"></i>Vue :</span>
+                        <span class="text-xs text-gray-400 pl-2 hidden sm:inline"><i class="fas fa-filter mr-1"></i>Vue Globale :</span>
                         <select id="ownerFilter" onchange="changeOwnerFilter(this.value)" class="bg-gray-800 border border-gray-600 rounded-lg px-3 py-1.5 text-sm font-medium text-yango-yellow focus:outline-none cursor-pointer">
                             <option value="all">🌐 Tous les parcs</option>
-                            <!-- Rempli par JS -->
                         </select>
                     </div>
-                    
                     <div class="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center font-bold text-black border-2 border-gray-800 shadow-md">
-                        <i class="fas fa-user"></i>
+                        <i class="fas fa-user-tie"></i>
                     </div>
                 </div>
             </header>
@@ -152,18 +154,17 @@
                 <div id="dashboard" class="space-y-6">
                     <div class="flex items-center justify-between">
                         <div>
-                            <h2 class="text-2xl font-bold" id="dashTitle">Vue d'ensemble Globale</h2>
-                            <p class="text-gray-400 text-sm mt-1">Analyse détaillée des performances</p>
+                            <h2 class="text-2xl font-bold" id="dashTitle">Performance Globale</h2>
+                            <p class="text-gray-400 text-sm mt-1">Rentabilité et état du parc en temps réel</p>
                         </div>
                     </div>
                     
-                    <!-- Alertes critiques sur le Dashboard -->
-                    <div id="dashAlertsArea" class="hidden">
-                        <div class="bg-red-500/20 border border-red-500/50 rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:bg-red-500/30 transition-colors" onclick="showSection('documents')">
-                            <i class="fas fa-exclamation-triangle text-2xl text-red-400"></i>
+                    <div id="dashAlertsArea" class="hidden slide-in">
+                        <div class="bg-red-500/10 border border-red-500/50 rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:bg-red-500/20 transition-all" onclick="showSection('documents')">
+                            <div class="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center"><i class="fas fa-exclamation-triangle text-red-400"></i></div>
                             <div>
                                 <h4 class="text-red-400 font-bold">Action Requise</h4>
-                                <p class="text-sm text-gray-300">Certains véhicules ont des documents expirés ou arrivant à expiration imminente.</p>
+                                <p class="text-sm text-gray-300">Des documents (assurance, visite tech.) nécessitent votre attention.</p>
                             </div>
                             <i class="fas fa-chevron-right ml-auto text-gray-400"></i>
                         </div>
@@ -171,61 +172,52 @@
 
                     <!-- Stats Cards -->
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div class="glass rounded-2xl p-5 card-hover border border-gray-700/50">
-                            <div class="flex justify-between items-start">
-                                <div class="p-3 rounded-xl bg-blue-500/10 w-max mb-2"><i class="fas fa-car text-blue-400 text-xl"></i></div>
-                                <span class="text-xs bg-gray-800 px-2 py-1 rounded border border-gray-700 text-gray-400" id="statDispo">--% dispo</span>
+                        <div class="glass rounded-2xl p-5 card-hover border border-gray-700/50 relative overflow-hidden">
+                            <div class="absolute -right-4 -top-4 text-blue-500/10"><i class="fas fa-car text-8xl"></i></div>
+                            <div class="flex justify-between items-start mb-2 relative z-10">
+                                <span class="text-xs bg-gray-800 px-2 py-1 rounded border border-gray-700 text-gray-400" id="statDispo">--% Actifs</span>
                             </div>
-                            <p class="text-3xl font-bold" id="statVehicles">0</p>
-                            <p class="text-gray-400 text-sm mt-1">Véhicules Total</p>
+                            <p class="text-3xl font-bold relative z-10" id="statVehicles">0</p>
+                            <p class="text-gray-400 text-sm mt-1 relative z-10">Véhicules Total</p>
                         </div>
-                        <div class="glass rounded-2xl p-5 card-hover border border-gray-700/50">
-                            <div class="p-3 rounded-xl bg-green-500/10 w-max mb-4"><i class="fas fa-money-bill-wave text-green-400 text-xl"></i></div>
-                            <p class="text-3xl font-bold text-green-400" id="statRevenue">0 F</p>
-                            <p class="text-gray-400 text-sm mt-1">Recettes Brutes</p>
+                        <div class="glass rounded-2xl p-5 card-hover border border-gray-700/50 relative overflow-hidden">
+                            <div class="absolute -right-4 -top-4 text-green-500/10"><i class="fas fa-wallet text-8xl"></i></div>
+                            <p class="text-3xl font-bold text-green-400 mt-6 relative z-10" id="statRevenue">0 F</p>
+                            <p class="text-gray-400 text-sm mt-1 relative z-10">Total Recettes / Versements</p>
                         </div>
-                        <div class="glass rounded-2xl p-5 card-hover border border-red-700/30">
-                            <div class="p-3 rounded-xl bg-red-500/10 w-max mb-4"><i class="fas fa-tools text-red-400 text-xl"></i></div>
-                            <p class="text-3xl font-bold text-red-400" id="statExpenses">0 F</p>
-                            <p class="text-gray-400 text-sm mt-1">Total Dépenses</p>
+                        <div class="glass rounded-2xl p-5 card-hover border border-gray-700/50 relative overflow-hidden">
+                            <div class="absolute -right-4 -top-4 text-red-500/10"><i class="fas fa-tools text-8xl"></i></div>
+                            <p class="text-3xl font-bold text-red-400 mt-6 relative z-10" id="statExpenses">0 F</p>
+                            <p class="text-gray-400 text-sm mt-1 relative z-10">Maintenance & Dépenses</p>
                         </div>
-                        <div class="glass rounded-2xl p-5 card-hover border border-yango-yellow/30 bg-yango-yellow/5">
-                            <div class="p-3 rounded-xl bg-yango-yellow/20 w-max mb-4"><i class="fas fa-chart-line text-yango-yellow text-xl"></i></div>
-                            <p class="text-3xl font-bold text-yango-yellow" id="statNet">0 F</p>
-                            <p class="text-gray-400 text-sm mt-1">Bénéfice Net Propriétaire</p>
+                        <div class="glass rounded-2xl p-5 card-hover border border-yango-yellow/30 bg-yango-yellow/5 relative overflow-hidden">
+                            <div class="absolute -right-4 -top-4 text-yellow-500/10"><i class="fas fa-chart-line text-8xl"></i></div>
+                            <p class="text-3xl font-bold text-yango-yellow mt-6 relative z-10" id="statNet">0 F</p>
+                            <p class="text-gray-400 text-sm mt-1 relative z-10">Bénéfice Net Propriétaire</p>
                         </div>
                     </div>
 
                     <!-- Charts Row 1 -->
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div class="glass rounded-2xl p-6 border border-gray-700/50">
-                            <h3 class="font-semibold mb-4 text-white">Bilan Financier (Recettes vs Dépenses)</h3>
-                            <canvas id="financeChart" height="200"></canvas>
+                            <h3 class="font-semibold mb-4 text-white">Rentabilité par Véhicule (Net)</h3>
+                            <canvas id="profitChart" height="200"></canvas>
                         </div>
                         <div class="glass rounded-2xl p-6 border border-gray-700/50">
-                            <h3 class="font-semibold mb-4 text-white">Répartition de la Flotte</h3>
-                            <canvas id="fleetChart" height="200"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Charts Row 2 (Analytics) -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div class="glass rounded-2xl p-6 border border-gray-700/50">
-                            <h3 class="font-semibold mb-4 text-white">Top 5 - Véhicules les plus rentables (Net)</h3>
-                            <canvas id="topVehiclesChart" height="200"></canvas>
-                        </div>
-                        <div class="glass rounded-2xl p-6 border border-gray-700/50">
-                            <h3 class="font-semibold mb-4 text-white">Dépenses par Catégorie</h3>
-                            <canvas id="expensesChart" height="200"></canvas>
+                            <h3 class="font-semibold mb-4 text-white">Performances des Chauffeurs (Taux Versement)</h3>
+                            <canvas id="driverScoreChart" height="200"></canvas>
                         </div>
                     </div>
                 </div>
 
-                <!-- VEHICLES (STOCK) -->
+                <!-- VEHICLES (STOCK & ASSIGNATION) -->
                 <div id="vehicles" class="hidden space-y-6">
                     <div class="flex items-center justify-between">
-                        <h2 class="text-2xl font-bold">Parc Automobile</h2>
-                        <button onclick="openModal('addVehicle')" class="px-4 py-2 bg-yango-yellow text-black rounded-xl font-medium hover:bg-yellow-400 transition-colors">
+                        <div>
+                            <h2 class="text-2xl font-bold">Flotte & Assignations</h2>
+                            <p class="text-gray-400 text-sm mt-1">Gérez vos véhicules et assignez-les aux chauffeurs.</p>
+                        </div>
+                        <button onclick="openModal('addVehicle')" class="px-4 py-2 bg-yango-yellow text-black rounded-xl font-medium hover:bg-yellow-400 transition-colors shadow-lg">
                             <i class="fas fa-plus md:mr-2"></i><span class="hidden md:inline">Nouveau Véhicule</span>
                         </button>
                     </div>
@@ -234,70 +226,125 @@
                     </div>
                 </div>
 
-                <!-- DRIVERS -->
+                <!-- DRIVERS (AVEC SCORE) -->
                 <div id="drivers" class="hidden space-y-6">
                     <div class="flex items-center justify-between">
-                        <h2 class="text-2xl font-bold">Chauffeurs</h2>
+                        <h2 class="text-2xl font-bold">Chauffeurs & Scores</h2>
                         <button onclick="openModal('addDriver')" class="px-4 py-2 bg-yango-yellow text-black rounded-xl font-medium hover:bg-yellow-400 transition-colors">
-                            <i class="fas fa-plus md:mr-2"></i><span class="hidden md:inline">Nouveau Chauffeur</span>
+                            <i class="fas fa-user-plus md:mr-2"></i><span class="hidden md:inline">Nouveau Chauffeur</span>
                         </button>
                     </div>
                     <div class="glass rounded-2xl overflow-hidden border border-gray-700/50">
                         <div class="overflow-x-auto">
-                            <table class="w-full text-left min-w-[600px]">
-                                <thead class="bg-white/5">
+                            <table class="w-full text-left min-w-[800px]">
+                                <thead class="bg-white/5 border-b border-gray-700">
                                     <tr>
                                         <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Chauffeur</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Contact & Adresse</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Documents</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Appartenance</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Contact & Info</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Véhicule Assigné</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Versement Attendu</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase text-center">Score Fiabilité</th>
                                         <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="driversTable" class="divide-y divide-gray-700/50">
-                                    <!-- Populated dynamically -->
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- ADMIN & DOCUMENTS (NOUVEAU) -->
-                <div id="documents" class="hidden space-y-6">
+                <!-- MODULE VERSEMENTS CHAUFFEURS -->
+                <div id="versements" class="hidden space-y-6">
                     <div class="flex items-center justify-between">
                         <div>
-                            <h2 class="text-2xl font-bold">Administration & Échéances</h2>
-                            <p class="text-gray-400 text-sm mt-1">Gérez les assurances, visites techniques et patentes.</p>
+                            <h2 class="text-2xl font-bold text-green-400"><i class="fas fa-hand-holding-usd mr-2"></i>Suivi des Versements</h2>
+                            <p class="text-gray-400 text-sm mt-1">Enregistrez les versements journaliers et détectez les écarts.</p>
+                        </div>
+                        <button onclick="openModal('addPayment')" class="px-4 py-2 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-colors shadow-lg">
+                            <i class="fas fa-plus md:mr-2"></i><span class="hidden md:inline">Enregistrer Versement</span>
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                        <div class="glass rounded-xl p-4 border border-green-500/30 bg-green-500/5">
+                            <p class="text-sm text-gray-400">Total Versé (Ce Mois)</p>
+                            <h3 class="text-2xl font-bold text-green-400 mt-1" id="kpiTotalPaid">0 F</h3>
+                        </div>
+                        <div class="glass rounded-xl p-4 border border-red-500/30 bg-red-500/5">
+                            <p class="text-sm text-gray-400">Total Manquant (Dettes)</p>
+                            <h3 class="text-2xl font-bold text-red-400 mt-1" id="kpiTotalMissing">0 F</h3>
                         </div>
                     </div>
 
-                    <!-- Cartes de synthèse Documents -->
+                    <div class="glass rounded-2xl overflow-hidden border border-gray-700/50">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left min-w-[800px]">
+                                <thead class="bg-white/5 border-b border-gray-700">
+                                    <tr>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Date</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Chauffeur</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Montant Attendu</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Montant Versé</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Écart (Dette/Surplus)</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase text-center">Statut</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="paymentsTable" class="divide-y divide-gray-700/50">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODULE MAINTENANCE & CARBURANT -->
+                <div id="maintenance" class="hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-2xl font-bold text-orange-400"><i class="fas fa-tools mr-2"></i>Maintenance & Dépenses</h2>
+                            <p class="text-gray-400 text-sm mt-1">Suivez les réparations, vidanges et carburant par véhicule.</p>
+                        </div>
+                        <button onclick="openModal('addMaintenanceLog')" class="px-4 py-2 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 transition-colors shadow-lg">
+                            <i class="fas fa-plus md:mr-2"></i><span class="hidden md:inline">Nouvelle Intervention</span>
+                        </button>
+                    </div>
+
+                    <div class="glass rounded-2xl overflow-hidden border border-gray-700/50">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left min-w-[800px]">
+                                <thead class="bg-white/5 border-b border-gray-700">
+                                    <tr>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Date</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Véhicule</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Type d'Intervention</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Coût</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Prochaine Visite / Km</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="maintenanceTable" class="divide-y divide-gray-700/50">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ADMIN DOCUMENTS (EXISTANT) -->
+                <div id="documents" class="hidden space-y-6">
+                    <h2 class="text-2xl font-bold">Administration & Échéances</h2>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         <div class="glass rounded-xl p-4 border border-red-500/30 bg-red-500/5 flex items-center gap-4">
                             <div class="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center text-red-400 text-xl"><i class="fas fa-exclamation-triangle"></i></div>
-                            <div>
-                                <h3 class="text-2xl font-bold text-red-400" id="docExpiredCount">0</h3>
-                                <p class="text-sm text-gray-400">Documents Expirés</p>
-                            </div>
+                            <div><h3 class="text-2xl font-bold text-red-400" id="docExpiredCount">0</h3><p class="text-sm text-gray-400">Expirés</p></div>
                         </div>
                         <div class="glass rounded-xl p-4 border border-orange-500/30 bg-orange-500/5 flex items-center gap-4">
                             <div class="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 text-xl"><i class="fas fa-bell"></i></div>
-                            <div>
-                                <h3 class="text-2xl font-bold text-orange-400" id="docWarningCount">0</h3>
-                                <p class="text-sm text-gray-400">Expirant à J-30</p>
-                            </div>
-                        </div>
-                        <div class="glass rounded-xl p-4 border border-green-500/30 bg-green-500/5 flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 text-xl"><i class="fas fa-check"></i></div>
-                            <div>
-                                <h3 class="text-2xl font-bold text-green-400" id="docOkCount">0</h3>
-                                <p class="text-sm text-gray-400">Documents à jour</p>
-                            </div>
+                            <div><h3 class="text-2xl font-bold text-orange-400" id="docWarningCount">0</h3><p class="text-sm text-gray-400">À risque (J-30)</p></div>
                         </div>
                     </div>
 
-                    <h3 class="text-xl font-bold text-white mt-8 mb-4"><i class="fas fa-car mr-2"></i>Documents Véhicules</h3>
-                    <!-- Tableau des Documents Véhicules -->
+                    <h3 class="text-xl font-bold text-white mt-8 mb-4">Documents Véhicules</h3>
                     <div class="glass rounded-2xl overflow-hidden border border-gray-700/50">
                         <div class="overflow-x-auto">
                             <table class="w-full text-left min-w-[1000px]">
@@ -307,113 +354,72 @@
                                         <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Assurance</th>
                                         <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Visite Tech.</th>
                                         <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Patente / VTC</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Taxe Mairie</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Extincteur</th>
                                         <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase text-center">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody id="docsTable" class="divide-y divide-gray-700/50">
-                                    <!-- Populated dynamically -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <h3 class="text-xl font-bold text-white mt-8 mb-4"><i class="fas fa-user-tie mr-2"></i>Documents Chauffeurs</h3>
-                    <!-- Tableau des Documents Chauffeurs -->
-                    <div class="glass rounded-2xl overflow-hidden border border-gray-700/50">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left min-w-[600px]">
-                                <thead class="bg-white/5 border-b border-gray-700">
-                                    <tr>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Chauffeur</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Contact</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Visite Médicale</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase text-center">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="driverDocsTable" class="divide-y divide-gray-700/50">
-                                    <!-- Populated dynamically -->
-                                </tbody>
+                                <tbody id="docsTable" class="divide-y divide-gray-700/50"></tbody>
                             </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- FINANCE & DÉPENSES -->
+                <!-- GRAND LIVRE FINANCIER (RAPPORTS) -->
                 <div id="finance" class="hidden space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
                         <div>
-                            <h2 class="text-2xl font-bold">Opérations Financières</h2>
-                            <p class="text-gray-400 text-sm mt-1">Gérez vos recettes journalières et vos dépenses diverses.</p>
+                            <h2 class="text-2xl font-bold">Rapports Financiers</h2>
+                            <p class="text-gray-400 text-sm mt-1">Vue consolidée de l'ensemble des flux (Versements & Dépenses).</p>
                         </div>
-                        <div class="flex flex-wrap gap-2">
-                            <button onclick="exportToCSV()" class="px-3 py-2 bg-blue-500/20 text-blue-400 border border-blue-500/50 rounded-lg font-medium hover:bg-blue-500/30 transition-colors shadow-sm text-sm" title="Exporter Excel (CSV)">
-                                <i class="fas fa-file-excel mr-1"></i> Excel
-                            </button>
-                            <button onclick="exportToPDF()" class="px-3 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg font-medium hover:bg-red-500/30 transition-colors shadow-sm text-sm" title="Exporter PDF">
-                                <i class="fas fa-file-pdf mr-1"></i> PDF
-                            </button>
-                            <button onclick="openModal('addRevenue')" class="px-4 py-2 bg-green-500/20 text-green-400 border border-green-500/50 rounded-lg font-medium hover:bg-green-500/30 transition-colors shadow-sm ml-2">
-                                <i class="fas fa-plus mr-1"></i>Recette
-                            </button>
-                            <button onclick="openModal('addExpense')" class="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg font-medium hover:bg-red-500/30 transition-colors shadow-sm">
-                                <i class="fas fa-minus mr-1"></i>Dépense
-                            </button>
+                        <div class="flex gap-2">
+                            <button onclick="exportToCSV()" class="px-3 py-2 bg-blue-500/20 text-blue-400 border border-blue-500/50 rounded-lg text-sm hover:bg-blue-500/30"><i class="fas fa-file-excel mr-1"></i> Excel</button>
+                            <button onclick="exportToPDF()" class="px-3 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg text-sm hover:bg-red-500/30"><i class="fas fa-file-pdf mr-1"></i> PDF</button>
                         </div>
                     </div>
                     
-                    <!-- Unified Ledger (Grand Livre) -->
-                    <div class="glass rounded-2xl p-4 md:p-6 border border-gray-700/50" id="ledgerExportArea">
-                        <div class="flex gap-4 mb-6 border-b border-gray-700 pb-2 no-print">
-                            <button onclick="switchFinanceTab('all')" id="tabAll" class="text-yango-yellow font-bold border-b-2 border-yango-yellow pb-2 px-2 transition-all">Tout l'historique</button>
-                            <button onclick="switchFinanceTab('revenues')" id="tabRev" class="text-gray-400 hover:text-white pb-2 px-2 transition-all">Recettes Uniquement</button>
-                            <button onclick="switchFinanceTab('expenses')" id="tabExp" class="text-gray-400 hover:text-white pb-2 px-2 transition-all">Dépenses Uniquement</button>
-                        </div>
-                        
-                        <h3 class="font-bold text-lg mb-4 hidden print-only" style="color:black; display:none;">Extrait Financier - Yango Fleet</h3>
-
+                    <div class="glass rounded-2xl p-4 border border-gray-700/50" id="ledgerExportArea">
+                        <h3 class="font-bold text-lg mb-4 hidden print-only" style="color:black; display:none;">Rapport Financier - Fleet PRO</h3>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left text-sm min-w-[800px]" id="dataTable">
                                 <thead class="bg-white/5 border-b border-gray-700">
                                     <tr>
                                         <th class="px-4 py-3 text-gray-400 font-semibold">Date</th>
-                                        <th class="px-4 py-3 text-gray-400 font-semibold">Type / Motif</th>
-                                        <th class="px-4 py-3 text-gray-400 font-semibold">Véhicule</th>
+                                        <th class="px-4 py-3 text-gray-400 font-semibold">Type</th>
+                                        <th class="px-4 py-3 text-gray-400 font-semibold">Référence (Chauffeur/Vehicule)</th>
                                         <th class="px-4 py-3 text-gray-400 font-semibold hidden lg:table-cell">Détails</th>
-                                        <th class="px-4 py-3 text-gray-400 font-semibold text-right">Montant Brut</th>
                                         <th class="px-4 py-3 font-bold text-white text-right">Impact Net</th>
-                                        <th class="px-4 py-3 text-gray-400 text-center no-print">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="ledgerTable" class="divide-y divide-gray-700/50">
-                                    <!-- Populé par JS (mélange de recettes et dépenses) -->
-                                </tbody>
+                                <tbody id="ledgerTable" class="divide-y divide-gray-700/50"></tbody>
                             </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- ADMINISTRATION COMPTES -->
+                <!-- ADMINISTRATION COMPTES (SÉCURITÉ) -->
                 <div id="admin" class="hidden space-y-6">
                     <div class="flex items-center justify-between">
-                        <h2 class="text-2xl font-bold text-purple-400"><i class="fas fa-shield-alt mr-2"></i>Administration Utilisateurs</h2>
-                        <button onclick="openModal('addOwner')" class="px-4 py-2 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 transition-colors">
-                            <i class="fas fa-plus mr-2"></i>Nouveau Compte
+                        <div>
+                            <h2 class="text-2xl font-bold text-purple-400"><i class="fas fa-shield-alt mr-2"></i>Sécurité & Accès</h2>
+                            <p class="text-gray-400 text-sm mt-1">Créez des comptes sécurisés pour vos propriétaires.</p>
+                        </div>
+                        <button onclick="openModal('addOwner')" class="px-4 py-2 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 transition-colors shadow-lg">
+                            <i class="fas fa-user-plus mr-2"></i>Nouveau Propriétaire
                         </button>
+                    </div>
+                    <div class="bg-purple-500/10 border border-purple-500/30 p-4 rounded-xl mb-4">
+                        <p class="text-sm text-purple-300"><i class="fas fa-info-circle mr-2"></i>Les mots de passe sont hachés et sécurisés par Firebase Authentication.</p>
                     </div>
                     <div class="glass rounded-2xl overflow-hidden border border-gray-700/50">
                         <table class="w-full text-left">
-                            <thead class="bg-white/5">
+                            <thead class="bg-white/5 border-b border-gray-700">
                                 <tr>
-                                    <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Identifiant Connexion</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Email Connexion</th>
                                     <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Nom du Propriétaire</th>
                                     <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Rôle</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="ownersTable" class="divide-y divide-gray-700/50">
-                                <!-- Populated dynamically -->
-                            </tbody>
+                            <tbody id="ownersTable" class="divide-y divide-gray-700/50"></tbody>
                         </table>
                     </div>
                 </div>
@@ -437,62 +443,56 @@
         // 1. IMPORTATION FIREBASE & CONFIGURATION
         // ==========================================
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Détection automatique de l'environnement (Canvas interactif vs Serveur Externe)
-        let firebaseConfig = {};
-        if (typeof __firebase_config !== 'undefined') {
-            firebaseConfig = JSON.parse(__firebase_config);
-        } else {
-            // Configuration officielle de votre projet Yango Fleet
-            firebaseConfig = {
-                apiKey: "AIzaSyAKsqvTL0ZZ6PtNdXvSG1jbXbkhx3CsezU",
-                authDomain: "yango-fleet.firebaseapp.com",
-                projectId: "yango-fleet",
-                storageBucket: "yango-fleet.firebasestorage.app",
-                messagingSenderId: "331683244324",
-                appId: "1:331683244324:web:2c67450d9e8b3e7bafabb1",
-                measurementId: "G-2LDSW2KCXK"
-            };
-        }
+        // Configuration officielle de votre projet Yango Fleet
+        const firebaseConfig = {
+            apiKey: "AIzaSyAKsqvTL0ZZ6PtNdXvSG1jbXbkhx3CsezU",
+            authDomain: "yango-fleet.firebaseapp.com",
+            projectId: "yango-fleet",
+            storageBucket: "yango-fleet.firebasestorage.app",
+            messagingSenderId: "331683244324",
+            appId: "1:331683244324:web:2c67450d9e8b3e7bafabb1",
+            measurementId: "G-2LDSW2KCXK"
+        };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         
+        // Instance secondaire pour la création d'utilisateurs par l'Admin sans être déconnecté
+        const secondaryApp = initializeApp(firebaseConfig, "Secondary");
+        const secondaryAuth = getAuth(secondaryApp);
+
         // Identifiant unique
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'yango-fleet-prod-v1';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'yango-fleet-prod-v2';
 
         // Variables d'état Globales
         let fbUser = null;
         let users = [];
         let vehicles = [];
         let drivers = [];
-        let revenues = [];
-        let expenses = []; 
+        let payments = []; // Remplace revenues
+        let maintenances = []; // Remplace expenses
         
         let loggedInUser = null;
         let currentOwnerFilter = 'all'; 
-        let currentLedgerTab = 'all'; 
 
-        let chartFinance = null;
-        let chartFleet = null;
-        let chartTopVehicles = null;
-        let chartExpenses = null;
+        let profitChart = null;
+        let driverScoreChart = null;
 
-        // Utilitaires UI personnalisés
-        window.customAlert = (message) => {
+        // Utilitaires UI
+        window.customAlert = (message, isError=false) => {
             const overlay = document.createElement('div');
             overlay.className = "fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[200] p-4 slide-in";
             overlay.innerHTML = `
                 <div class="glass rounded-2xl p-6 max-w-sm w-full border border-gray-700/50 text-center shadow-2xl">
-                    <i class="fas fa-info-circle text-4xl text-blue-400 mb-4"></i>
+                    <i class="fas ${isError ? 'fa-times-circle text-red-500' : 'fa-check-circle text-green-400'} text-5xl mb-4"></i>
                     <h3 class="text-lg font-bold mb-6">${message}</h3>
-                    <button id="btnOk" class="px-6 py-2 bg-yango-yellow text-black hover:bg-yellow-400 rounded-lg font-medium transition-colors">OK</button>
+                    <button onclick="this.parentElement.parentElement.remove()" class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-medium transition-colors">Fermer</button>
                 </div>`;
             document.body.appendChild(overlay);
-            document.getElementById('btnOk').onclick = () => document.body.removeChild(overlay);
         };
 
         window.customConfirm = (message, callback) => {
@@ -503,124 +503,98 @@
                     <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
                     <h3 class="text-lg font-bold mb-6">${message}</h3>
                     <div class="flex gap-4 justify-center">
-                        <button id="btnCancel" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg font-medium transition-colors text-white">Annuler</button>
-                        <button id="btnConfirm" class="px-4 py-2 bg-red-500 hover:bg-red-400 text-white rounded-lg font-medium transition-colors">Confirmer</button>
+                        <button id="btnCancel" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-white">Annuler</button>
+                        <button id="btnConfirm" class="px-4 py-2 bg-red-500 hover:bg-red-400 text-white rounded-lg">Confirmer</button>
                     </div>
                 </div>`;
             document.body.appendChild(overlay);
-            document.getElementById('btnCancel').onclick = () => document.body.removeChild(overlay);
-            document.getElementById('btnConfirm').onclick = () => {
-                document.body.removeChild(overlay);
-                callback();
-            };
-        };
-
-        // ==========================================
-        // 2. AUTHENTIFICATION & ÉCOUTEURS FIREBASE
-        // ==========================================
-        const initAuth = async () => {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Firebase Auth Error:", error);
-                let errorMsg = "Erreur de connexion serveur.";
-                if (error.code === 'auth/operation-not-allowed') {
-                    errorMsg = "Erreur : L'authentification 'Anonyme' n'est pas activée sur Firebase.";
-                }
-                document.getElementById('loginError').textContent = errorMsg;
-                document.getElementById('loginError').classList.remove('hidden');
-            }
+            document.getElementById('btnCancel').onclick = () => overlay.remove();
+            document.getElementById('btnConfirm').onclick = () => { overlay.remove(); callback(); };
         };
 
         const getColRef = (colName) => collection(db, 'artifacts', appId, 'public', 'data', colName);
 
-        function setupListeners() {
-            if (!fbUser) return;
-
-            const handleError = (error) => {
-                console.error("Firestore Error:", error);
-                document.getElementById('loginError').textContent = "Erreur Firestore : Vérifiez que la base est en 'Mode Test'.";
-                document.getElementById('loginError').classList.remove('hidden');
-            };
-
-            // Chargement des Utilisateurs
-            onSnapshot(getColRef('users'), async (snapshot) => {
-                users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                // Si la base est totalement vide, on crée uniquement le compte Admin initial
-                if(users.length === 0) {
-                    await addDoc(getColRef('users'), { username: 'admin', pass: 'admin123', role: 'admin', name: 'Super Administrateur' });
-                }
-                
-                if (loggedInUser && loggedInUser.role === 'admin') updateAdminDropdown();
-                if (loggedInUser) updateUI();
-            }, handleError);
-
-            // Chargement des Véhicules
-            onSnapshot(getColRef('vehicles'), (snapshot) => {
-                vehicles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if(loggedInUser) { updateUI(); updateCharts(); }
-            }, handleError);
-
-            // Chargement des Chauffeurs
-            onSnapshot(getColRef('drivers'), (snapshot) => {
-                drivers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if(loggedInUser) updateUI();
-            }, handleError);
-
-            // Chargement des Recettes
-            onSnapshot(getColRef('revenues'), (snapshot) => {
-                revenues = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if(loggedInUser) { updateUI(); updateCharts(); }
-            }, handleError);
-
-            // Chargement des Dépenses
-            onSnapshot(getColRef('expenses'), (snapshot) => {
-                expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if(loggedInUser) { updateUI(); updateCharts(); }
-            }, handleError);
-        }
-
-        onAuthStateChanged(auth, (user) => {
-            fbUser = user;
-            if (user) setupListeners();
-        });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            initAuth();
-        });
-
         // ==========================================
-        // 3. LOGIQUE INTERNE (LOGIN APP)
+        // 2. AUTHENTIFICATION SÉCURISÉE (EMAIL/PASS)
         // ==========================================
-        window.handleLogin = (e) => {
+        window.handleLogin = async (e) => {
             e.preventDefault();
-            const userIn = document.getElementById('loginUser').value.trim();
-            const passIn = document.getElementById('loginPass').value.trim();
+            const email = document.getElementById('loginEmail').value.trim();
+            const pass = document.getElementById('loginPass').value.trim();
             const errorDiv = document.getElementById('loginError');
+            const spinner = document.getElementById('loginSpinner');
+            const btnText = document.getElementById('loginBtnText');
 
-            const user = users.find(u => u.username === userIn && u.pass === passIn);
+            errorDiv.classList.add('hidden');
+            spinner.classList.remove('hidden');
+            btnText.textContent = 'Connexion...';
 
-            if (user) {
-                errorDiv.classList.add('hidden');
-                loggedInUser = user;
-                launchApp();
-            } else {
-                errorDiv.textContent = users.length === 0 ? "Initialisation de la base... Veuillez réessayer." : "Identifiants incorrects.";
+            try {
+                // Tente la connexion Firebase
+                const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+                // La suite est gérée par onAuthStateChanged
+            } catch (error) {
+                spinner.classList.add('hidden');
+                btnText.textContent = 'Se connecter';
+                console.error("Auth Error:", error);
+                
+                if(error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+                    errorDiv.textContent = "Email ou mot de passe incorrect.";
+                } else {
+                    errorDiv.textContent = "Erreur système. Veuillez réessayer.";
+                }
                 errorDiv.classList.remove('hidden');
             }
         };
 
-        window.logout = () => {
+        window.logout = async () => {
+            await signOut(auth);
             loggedInUser = null;
             document.getElementById('mainApp').classList.add('hidden');
             document.getElementById('loginScreen').classList.remove('hidden');
             document.getElementById('loginForm').reset();
         };
+
+        function setupListeners() {
+            if (!fbUser) return;
+
+            // Chargement de la métadonnée Utilisateur (Rôle)
+            onSnapshot(getColRef('users'), async (snapshot) => {
+                users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Recherche des droits de l'utilisateur connecté
+                loggedInUser = users.find(u => u.email === fbUser.email);
+                
+                // --- SECURITE : Création auto du super admin si la base est vide ---
+                if(!loggedInUser && users.length === 0 && fbUser.email.includes("admin")) {
+                    const newAdmin = { email: fbUser.email, role: 'admin', name: 'Super Administrateur' };
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', fbUser.uid), newAdmin);
+                    loggedInUser = { id: fbUser.uid, ...newAdmin };
+                }
+
+                if(loggedInUser) {
+                    launchApp();
+                } else {
+                    await signOut(auth);
+                    customAlert("Votre compte n'a pas les droits d'accès à cette interface.", true);
+                }
+            });
+
+            // Écouteurs de données Business
+            onSnapshot(getColRef('vehicles'), (snapshot) => { vehicles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) updateUI(); });
+            onSnapshot(getColRef('drivers'), (snapshot) => { drivers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) updateUI(); });
+            onSnapshot(getColRef('driverPayments'), (snapshot) => { payments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) updateUI(); });
+            onSnapshot(getColRef('maintenanceLogs'), (snapshot) => { maintenances = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) updateUI(); });
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            fbUser = user;
+            if (user) {
+                document.getElementById('loginSpinner').classList.add('hidden');
+                document.getElementById('loginBtnText').textContent = 'Se connecter';
+                setupListeners();
+            }
+        });
 
         function launchApp() {
             document.getElementById('loginScreen').classList.add('hidden');
@@ -641,33 +615,21 @@
                 adminContainer.classList.add('hidden');
                 adminContainer.classList.remove('flex');
                 adminNavBtn.classList.add('hidden');
-                currentOwnerFilter = loggedInUser.id; 
+                currentOwnerFilter = loggedInUser.id; // L'owner ne voit que ses données (Sécurité Firestore virtuelle)
             }
             
             showSection('dashboard');
-            updateTitle();
             updateUI();
-            
-            if(!chartFinance) initCharts();
-            else updateCharts();
         }
 
         // ==========================================
-        // 4. NAVIGATION ET FILTRES
+        // 3. NAVIGATION & UI
         // ==========================================
         window.changeOwnerFilter = (ownerId) => {
             if(loggedInUser.role !== 'admin') return;
             currentOwnerFilter = ownerId;
-            updateTitle();
             updateUI();
-            updateCharts();
         };
-
-        function updateTitle() {
-            const title = document.getElementById('dashTitle');
-            if(currentOwnerFilter === 'all') title.textContent = "Vue d'ensemble Globale";
-            else title.textContent = "Vue du Parc : " + getOwnerName(currentOwnerFilter);
-        }
 
         window.showSection = (section) => {
             document.querySelectorAll('#contentArea > div').forEach(div => div.classList.add('hidden'));
@@ -683,63 +645,8 @@
             if(section === 'dashboard') updateCharts();
         };
 
-        window.switchFinanceTab = (tab) => {
-            currentLedgerTab = tab;
-            document.getElementById('tabAll').className = tab === 'all' ? 'text-yango-yellow font-bold border-b-2 border-yango-yellow pb-2 px-2 transition-all' : 'text-gray-400 hover:text-white pb-2 px-2 transition-all';
-            document.getElementById('tabRev').className = tab === 'revenues' ? 'text-yango-yellow font-bold border-b-2 border-yango-yellow pb-2 px-2 transition-all' : 'text-gray-400 hover:text-white pb-2 px-2 transition-all';
-            document.getElementById('tabExp').className = tab === 'expenses' ? 'text-yango-yellow font-bold border-b-2 border-yango-yellow pb-2 px-2 transition-all' : 'text-gray-400 hover:text-white pb-2 px-2 transition-all';
-            updateUI(); 
-        };
-
-        // EXPORT EXCEL & PDF
-        window.exportToCSV = () => {
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Date;Motif/Type;Véhicule;Description;Montant;Impact Net\n";
-            
-            const rows = document.querySelectorAll("#ledgerTable tr");
-            rows.forEach(row => {
-                if(row.innerText.includes("Aucune opération")) return;
-                const cols = row.querySelectorAll("td");
-                if(cols.length > 0) {
-                    const date = cols[0].innerText;
-                    const motif = cols[1].innerText;
-                    const veh = cols[2].innerText;
-                    const desc = cols[3].innerText;
-                    const brut = cols[4].innerText.replace(/ F/g, '').replace(/\s/g, '');
-                    const net = cols[5].innerText.replace(/ F/g, '').replace(/\s/g, '').replace(/\+/g, '');
-                    csvContent += `${date};"${motif}";"${veh}";"${desc}";${brut};${net}\n`;
-                }
-            });
-
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "extrait_financier_yango.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        };
-
-        window.exportToPDF = () => {
-            const element = document.getElementById('ledgerExportArea');
-            const printTitle = element.querySelector('.print-only');
-            if(printTitle) printTitle.style.display = 'block';
-            
-            const opt = {
-                margin:       0.5,
-                filename:     'Extrait_Financier_Yango.pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
-            };
-
-            html2pdf().set(opt).from(element).save().then(() => {
-                if(printTitle) printTitle.style.display = 'none';
-            });
-        };
-
         // ==========================================
-        // 5. GESTION DES MODALES (FORMULAIRES CRUD)
+        // 4. MODALES & LOGIQUE BUSINESS (CRUD)
         // ==========================================
         window.openModal = (type, dataId = null) => {
             const modal = document.getElementById('modal');
@@ -750,46 +657,33 @@
             if(loggedInUser.role === 'admin') {
                 const opts = users.filter(u => u.role !== 'admin').map(o => `<option value="${o.id}">${o.name}</option>`).join('');
                 ownerSelectHtml = `
-                    <label class="text-xs text-gray-400">Propriétaire assigné</label>
+                    <label class="text-xs text-gray-400">Appartenance (Propriétaire)</label>
                     <select id="formOwnerId" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white mb-3">
-                        <option value="">-- Choisir --</option>${opts}
+                        <option value="">-- Choisir le propriétaire --</option>${opts}
                     </select>`;
             }
 
             const availableVehicles = (currentOwnerFilter === 'all') ? vehicles : vehicles.filter(v => v.ownerId === currentOwnerFilter);
-            const vehOpts = availableVehicles.map(v => `<option value="${v.plate}">${v.brand} (${v.plate})</option>`).join('');
+            const vehOpts = availableVehicles.map(v => `<option value="${v.id}">${v.brand} (${v.plate})</option>`).join('');
+            
+            const availableDrivers = (currentOwnerFilter === 'all') ? drivers : drivers.filter(d => d.ownerId === currentOwnerFilter);
+            const driverOpts = availableDrivers.map(d => `<option value="${d.id}">${d.firstName} ${d.lastName}</option>`).join('');
 
-            if (type === 'addRevenue') {
-                title.innerHTML = '<i class="fas fa-plus-circle text-green-400 mr-2"></i> Ajouter Recette';
+            if (type === 'addDriver') {
+                title.textContent = 'Ajouter un Chauffeur';
                 content.innerHTML = `
-                    <form onsubmit="saveRevenue(event)" class="space-y-4">
-                        <div><label class="text-xs text-gray-400">Date</label><input type="date" id="revDate" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        <div><label class="text-xs text-gray-400">Véhicule</label><select id="revVehicle" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">${vehOpts || '<option value="">Aucun véhicule</option>'}</select></div>
-                        <div><label class="text-xs text-gray-400">Motif de la recette</label><input type="text" id="revMotif" required placeholder="Ex: Recette journalière, Location..." class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        <div><label class="text-xs text-gray-400">Recette Brute (FCFA)</label><input type="number" id="revBrut" required placeholder="Ex: 35000" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        <button type="submit" class="w-full py-3 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 mt-4">Enregistrer Recette</button>
-                    </form>
-                `;
-            } else if (type === 'addExpense') {
-                title.innerHTML = '<i class="fas fa-minus-circle text-red-400 mr-2"></i> Ajouter Dépense';
-                content.innerHTML = `
-                    <form onsubmit="saveExpense(event)" class="space-y-4">
-                        <div><label class="text-xs text-gray-400">Date</label><input type="date" id="expDate" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        <div><label class="text-xs text-gray-400">Véhicule concerné</label><select id="expVehicle" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">${vehOpts || '<option value="">Aucun véhicule</option>'}</select></div>
-                        <div>
-                            <label class="text-xs text-gray-400">Motif de la dépense</label>
-                            <select id="expType" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
-                                <option value="Carburant">Carburant</option>
-                                <option value="Entretien / Garage">Entretien / Garage</option>
-                                <option value="Pièces de rechange">Pièces de rechange</option>
-                                <option value="Assurance / Visite">Assurance / Visite</option>
-                                <option value="Amende / Police">Amende / Police</option>
-                                <option value="Autre">Autre</option>
-                            </select>
+                    <form onsubmit="saveDriver(event)" class="space-y-3">
+                        ${ownerSelectHtml}
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="text-xs text-gray-400">Nom</label><input type="text" id="dLastName" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                            <div><label class="text-xs text-gray-400">Prénom</label><input type="text" id="dFirstName" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
                         </div>
-                        <div><label class="text-xs text-gray-400">Montant (FCFA)</label><input type="number" id="expAmount" required placeholder="Ex: 25000" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        <div><label class="text-xs text-gray-400">Description / Note</label><input type="text" id="expDesc" placeholder="Détails (ex: Changement plaquettes frein)" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        <button type="submit" class="w-full py-3 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 mt-4">Enregistrer Dépense</button>
+                        <div><label class="text-xs text-gray-400">Téléphone (WhatsApp)</label><input type="text" id="dPhone" required placeholder="Ex: 0102030405" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <div class="border-t border-gray-700 pt-3 mt-2">
+                            <p class="text-xs text-yango-yellow font-bold mb-2 uppercase"><i class="fas fa-hand-holding-usd mr-1"></i> Conditions Financières</p>
+                            <div><label class="text-xs text-gray-400">Versement Journalier Attendu (FCFA)</label><input type="number" id="dExpected" required placeholder="Ex: 25000" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white font-bold text-green-400"></div>
+                        </div>
+                        <button type="submit" class="w-full py-2 bg-yango-yellow text-black rounded-lg font-medium hover:bg-yellow-400 mt-3">Enregistrer Chauffeur</button>
                     </form>
                 `;
             } else if (type === 'addVehicle') {
@@ -797,137 +691,72 @@
                 content.innerHTML = `
                     <form onsubmit="saveVehicle(event)" class="space-y-3">
                         ${ownerSelectHtml}
-                        <input type="text" id="vBrand" placeholder="Marque & Modèle (ex: Toyota Corolla)" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                        <input type="text" id="vBrand" placeholder="Marque & Modèle (ex: Suzuki Alto)" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
                         <input type="text" id="vPlate" placeholder="Immatriculation" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
                         
-                        <div class="border-t border-gray-700 pt-3 mt-2">
-                            <p class="text-xs text-yango-yellow font-bold mb-2 uppercase">Échéances Administratives (Optionnel)</p>
-                            <div class="grid grid-cols-2 gap-2 mb-2">
-                                <div><label class="text-xs text-gray-400">Assurance</label><input type="date" id="vIns" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
-                                <div><label class="text-xs text-gray-400">Visite Tech.</label><input type="date" id="vTech" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-2 mb-2">
-                                <div><label class="text-xs text-gray-400">Patente / VTC</label><input type="date" id="vPat" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
-                                <div><label class="text-xs text-gray-400">Taxe Mairie</label><input type="date" id="vTax" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
-                            </div>
-                            <div><label class="text-xs text-gray-400">Extincteur</label><input type="date" id="vExt" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
-                        </div>
-                        
+                        <div><label class="text-xs text-gray-400">Assigner un chauffeur (Optionnel)</label>
+                        <select id="vDriver" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"><option value="">Non assigné</option>${driverOpts}</select></div>
+
                         <select id="vStatus" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white mt-3">
                             <option value="actif">Actif (En Course)</option>
-                            <option value="inactif">Inactif / En Attente</option>
                             <option value="maintenance">En Maintenance</option>
                         </select>
                         <button type="submit" class="w-full py-2 bg-yango-yellow text-black rounded-lg font-medium hover:bg-yellow-400">Enregistrer Véhicule</button>
                     </form>
                 `;
-            } else if (type === 'editVehicle') {
-                const vehicle = vehicles.find(v => v.id === dataId);
-                title.textContent = 'Modifier un Véhicule';
+            } else if (type === 'addPayment') {
+                title.innerHTML = '<i class="fas fa-money-bill-wave text-green-400 mr-2"></i> Saisir un Versement';
                 content.innerHTML = `
-                    <form onsubmit="updateVehicle(event, '${vehicle.id}')" class="space-y-3">
-                        <input type="text" id="editVBrand" value="${vehicle.brand}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
-                        <input type="text" id="editVPlate" value="${vehicle.plate}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
-                        <select id="editVStatus" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
-                            <option value="actif" ${vehicle.status === 'actif' ? 'selected' : ''}>Actif (En Course)</option>
-                            <option value="inactif" ${vehicle.status === 'inactif' ? 'selected' : ''}>Inactif / En Attente</option>
-                            <option value="maintenance" ${vehicle.status === 'maintenance' ? 'selected' : ''}>En Maintenance</option>
-                        </select>
-                        <button type="submit" class="w-full py-2 bg-yango-yellow text-black rounded-lg font-medium hover:bg-yellow-400">Mettre à jour Véhicule</button>
+                    <form onsubmit="savePayment(event)" class="space-y-4">
+                        <div><label class="text-xs text-gray-400">Date du Versement</label><input type="date" id="payDate" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white" value="${new Date().toISOString().split('T')[0]}"></div>
+                        <div><label class="text-xs text-gray-400">Chauffeur</label>
+                        <select id="payDriver" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white" onchange="updateExpectedAmount(this.value)"><option value="">Sélectionner</option>${driverOpts}</select></div>
+                        <div class="p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                            <p class="text-xs text-gray-400">Montant Attendu pour ce chauffeur :</p>
+                            <p class="text-lg font-bold text-gray-300" id="displayExpected">Sélectionnez un chauffeur</p>
+                            <input type="hidden" id="payExpected" value="0">
+                        </div>
+                        <div><label class="text-xs text-gray-400">Montant Réellement Versé (FCFA)</label><input type="number" id="payAmount" required placeholder="Saisir la somme reçue" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-xl text-green-400 font-bold"></div>
+                        <div><label class="text-xs text-gray-400">Note / Justificatif (Optionnel)</label><input type="text" id="payNote" placeholder="Ex: Panne le matin..." class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <button type="submit" class="w-full py-3 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600">Valider le Versement</button>
                     </form>
                 `;
-            } else if (type === 'editDocuments') {
-                const vehicle = vehicles.find(v => v.id === dataId);
-                title.innerHTML = `<i class="fas fa-file-contract text-blue-400 mr-2"></i> Documents : ${vehicle.plate}`;
+            } else if (type === 'addMaintenanceLog') {
+                title.innerHTML = '<i class="fas fa-tools text-orange-400 mr-2"></i> Dépense Véhicule';
                 content.innerHTML = `
-                    <form onsubmit="updateDocuments(event, '${vehicle.id}')" class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="text-xs text-gray-400">Assurance</label>
-                                <input type="date" id="editIns" value="${vehicle.insuranceExpiry || ''}" class="w-full mt-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white">
-                            </div>
-                            <div>
-                                <label class="text-xs text-gray-400">Visite Technique</label>
-                                <input type="date" id="editTech" value="${vehicle.techVisitExpiry || ''}" class="w-full mt-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="text-xs text-gray-400">Patente / Carte VTC</label>
-                                <input type="date" id="editPat" value="${vehicle.licenseExpiry || ''}" class="w-full mt-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white">
-                            </div>
-                            <div>
-                                <label class="text-xs text-gray-400">Taxe Mairie</label>
-                                <input type="date" id="editTax" value="${vehicle.cityTaxExpiry || ''}" class="w-full mt-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white">
-                            </div>
-                        </div>
+                    <form onsubmit="saveMaintenance(event)" class="space-y-4">
+                        <div><label class="text-xs text-gray-400">Date</label><input type="date" id="maintDate" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white" value="${new Date().toISOString().split('T')[0]}"></div>
+                        <div><label class="text-xs text-gray-400">Véhicule concerné</label><select id="maintVehicle" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"><option value="">Sélectionner</option>${vehOpts}</select></div>
                         <div>
-                            <label class="text-xs text-gray-400">Extincteur</label>
-                            <input type="date" id="editExt" value="${vehicle.extinguisherExpiry || ''}" class="w-full mt-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white">
+                            <label class="text-xs text-gray-400">Type de Dépense</label>
+                            <select id="maintType" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                                <option value="Carburant">⛽ Carburant</option>
+                                <option value="Vidange">🛢️ Vidange</option>
+                                <option value="Réparation">🔧 Réparation / Garage</option>
+                                <option value="Pièces">⚙️ Achat Pièces</option>
+                                <option value="Assurance/Taxe">📄 Renouvellement Papiers</option>
+                                <option value="Autre">Autre</option>
+                            </select>
                         </div>
-                        <button type="submit" class="w-full py-3 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600">Enregistrer les Échéances</button>
-                    </form>
-                `;
-            } else if (type === 'addDriver') {
-                title.textContent = 'Ajouter un Chauffeur';
-                content.innerHTML = `
-                    <form onsubmit="saveDriver(event)" class="space-y-3">
-                        ${ownerSelectHtml}
-                        <div class="grid grid-cols-2 gap-3">
-                            <div><label class="text-xs text-gray-400">Nom</label><input type="text" id="dLastName" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                            <div><label class="text-xs text-gray-400">Prénoms</label><input type="text" id="dFirstName" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        </div>
-                        <div><label class="text-xs text-gray-400">Lieu d'habitation</label><input type="text" id="dAddress" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        <div><label class="text-xs text-gray-400">Numéro de téléphone</label><input type="text" id="dPhone" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div><label class="text-xs text-gray-400">N° Pièce d'identité</label><input type="text" id="dIdCard" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                            <div><label class="text-xs text-gray-400">N° Permis</label><input type="text" id="dLicense" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        </div>
-                        <div class="border-t border-gray-700 pt-3 mt-2">
-                            <p class="text-xs text-yango-yellow font-bold mb-2 uppercase">Échéances Santé (Optionnel)</p>
-                            <div><label class="text-xs text-gray-400">Expiration Visite Médicale</label><input type="date" id="dMed" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
-                        </div>
-                        <button type="submit" class="w-full py-2 bg-yango-yellow text-black rounded-lg font-medium hover:bg-yellow-400 mt-3">Enregistrer Chauffeur</button>
-                    </form>
-                `;
-            } else if (type === 'editDriver') {
-                const driver = drivers.find(d => d.id === dataId);
-                title.textContent = 'Modifier un Chauffeur';
-                content.innerHTML = `
-                    <form onsubmit="updateDriver(event, '${driver.id}')" class="space-y-3">
-                        <div class="grid grid-cols-2 gap-3">
-                            <div><label class="text-xs text-gray-400">Nom</label><input type="text" id="editDLastName" value="${driver.lastName}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                            <div><label class="text-xs text-gray-400">Prénoms</label><input type="text" id="editDFirstName" value="${driver.firstName}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        </div>
-                        <div><label class="text-xs text-gray-400">Lieu d'habitation</label><input type="text" id="editDAddress" value="${driver.address}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        <div><label class="text-xs text-gray-400">Numéro de téléphone</label><input type="text" id="editDPhone" value="${driver.phone}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div><label class="text-xs text-gray-400">N° Pièce d'identité</label><input type="text" id="editDIdCard" value="${driver.idCard}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                            <div><label class="text-xs text-gray-400">N° Permis</label><input type="text" id="editDLicense" value="${driver.license}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        </div>
-                        <button type="submit" class="w-full py-2 bg-yango-yellow text-black rounded-lg font-medium hover:bg-yellow-400">Mettre à jour Chauffeur</button>
-                    </form>
-                `;
-            } else if (type === 'editDriverDocs') {
-                const driver = drivers.find(d => d.id === dataId);
-                title.innerHTML = `<i class="fas fa-notes-medical text-blue-400 mr-2"></i> Santé : ${driver.firstName} ${driver.lastName}`;
-                content.innerHTML = `
-                    <form onsubmit="updateDriverDocs(event, '${driver.id}')" class="space-y-4">
-                        <div>
-                            <label class="text-sm text-gray-400">Expiration Visite Médicale</label>
-                            <input type="date" id="editMed" value="${driver.medicalVisitExpiry || ''}" class="w-full mt-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white">
-                        </div>
-                        <button type="submit" class="w-full py-3 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600">Mettre à jour</button>
+                        <div><label class="text-xs text-gray-400">Coût (FCFA)</label><input type="number" id="maintCost" required placeholder="Montant de la facture" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-red-400 font-bold"></div>
+                        <div><label class="text-xs text-gray-400">Détails de l'intervention</label><input type="text" id="maintDesc" required placeholder="Ex: Changement plaquettes de freins" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <div class="border-t border-gray-700 pt-3"><label class="text-xs text-gray-400">Prochaine intervention recommandée le : (Optionnel)</label><input type="date" id="maintNextDate" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-orange-300"></div>
+                        <button type="submit" class="w-full py-3 bg-orange-500 text-white rounded-lg font-bold hover:bg-orange-600">Enregistrer Dépense</button>
                     </form>
                 `;
             } else if (type === 'addOwner') {
-                title.textContent = 'Ajouter un Propriétaire (Admin)';
+                title.textContent = 'Créer un Compte Propriétaire';
                 content.innerHTML = `
-                    <form onsubmit="saveOwner(event)" class="space-y-3">
+                    <form onsubmit="saveOwnerSecure(event)" class="space-y-4">
+                        <div class="bg-blue-500/10 p-3 rounded text-xs text-blue-300 border border-blue-500/30 mb-4">
+                            L'utilisateur pourra se connecter avec cet email et ce mot de passe.
+                        </div>
                         <input type="text" id="oName" placeholder="Nom complet du propriétaire" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
-                        <input type="text" id="oUser" placeholder="Identifiant de connexion" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
-                        <input type="text" id="oPass" placeholder="Mot de passe" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
-                        <button type="submit" class="w-full py-2 bg-purple-500 text-white rounded-lg font-medium hover:bg-purple-600">Créer Compte</button>
+                        <input type="email" id="oEmail" placeholder="Email de connexion" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                        <input type="password" id="oPass" placeholder="Mot de passe (Min 6 caractères)" required minlength="6" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                        <button type="submit" id="btnCreateOwner" class="w-full py-3 bg-purple-500 text-white rounded-lg font-bold hover:bg-purple-600 flex justify-center items-center">
+                            <span>Créer Compte Sécurisé</span>
+                        </button>
                     </form>
                 `;
             }
@@ -940,525 +769,340 @@
             document.getElementById('modal').classList.remove('flex');
         };
 
-        // ==========================================
-        // 6. SAUVEGARDES FIREBASE (CRUD)
-        // ==========================================
-        function resolveOwnerId() {
-            if(loggedInUser.role === 'admin') {
-                return document.getElementById('formOwnerId').value;
+        window.updateExpectedAmount = (driverId) => {
+            const driver = drivers.find(d => d.id === driverId);
+            if(driver) {
+                document.getElementById('displayExpected').textContent = driver.dailyExpected + ' FCFA';
+                document.getElementById('payExpected').value = driver.dailyExpected;
+            } else {
+                document.getElementById('displayExpected').textContent = 'Sélectionnez un chauffeur';
+                document.getElementById('payExpected').value = 0;
             }
+        };
+
+        function resolveOwnerId(selectedId) {
+            if(loggedInUser.role === 'admin') return document.getElementById('formOwnerId').value;
             return loggedInUser.id;
         }
 
-        window.saveOwner = async (e) => {
+        // --- SAUVEGARDES ---
+        window.saveOwnerSecure = async (e) => {
             e.preventDefault();
-            if(!fbUser) return;
-            const data = { 
-                role: 'owner',
-                name: document.getElementById('oName').value,
-                username: document.getElementById('oUser').value,
-                pass: document.getElementById('oPass').value
-            };
-            await addDoc(getColRef('users'), data);
-            closeModal();
-            customAlert("Compte propriétaire créé avec succès !");
-        };
-
-        window.saveVehicle = async (e) => {
-            e.preventDefault();
-            if(!fbUser) return;
-            const ownerId = resolveOwnerId();
-            if(!ownerId) return customAlert("Propriétaire non défini.");
+            if(!fbUser || loggedInUser.role !== 'admin') return;
             
-            const data = {
-                ownerId: ownerId,
-                brand: document.getElementById('vBrand').value,
-                plate: document.getElementById('vPlate').value,
-                status: document.getElementById('vStatus').value,
-                insuranceExpiry: document.getElementById('vIns').value || null,
-                techVisitExpiry: document.getElementById('vTech').value || null,
-                licenseExpiry: document.getElementById('vPat').value || null,
-                cityTaxExpiry: document.getElementById('vTax').value || null,
-                extinguisherExpiry: document.getElementById('vExt').value || null,
-                driver: "Non assigné",
-                timestamp: new Date().getTime()
-            };
-            await addDoc(getColRef('vehicles'), data);
-            closeModal();
-        };
+            const btn = document.getElementById('btnCreateOwner');
+            btn.innerHTML = '<div class="loader"></div>';
+            btn.disabled = true;
 
-        window.updateVehicle = async (e, id) => {
-            e.preventDefault();
-            if(!fbUser) return;
-            const data = {
-                brand: document.getElementById('editVBrand').value,
-                plate: document.getElementById('editVPlate').value,
-                status: document.getElementById('editVStatus').value
-            };
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', id), data);
-            closeModal();
-        };
+            const email = document.getElementById('oEmail').value.trim();
+            const pass = document.getElementById('oPass').value;
+            const name = document.getElementById('oName').value.trim();
 
-        window.updateDocuments = async (e, id) => {
-            e.preventDefault();
-            if(!fbUser) return;
-            const data = {
-                insuranceExpiry: document.getElementById('editIns').value || null,
-                techVisitExpiry: document.getElementById('editTech').value || null,
-                licenseExpiry: document.getElementById('editPat').value || null,
-                cityTaxExpiry: document.getElementById('editTax').value || null,
-                extinguisherExpiry: document.getElementById('editExt').value || null
-            };
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', id), data);
-            closeModal();
-            customAlert("Dates d'échéance mises à jour !");
-        };
-
-        window.deleteVehicle = (id) => {
-            if(!fbUser) return;
-            customConfirm("Êtes-vous sûr de vouloir supprimer ce véhicule ?", async () => {
-                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', id));
-            });
+            try {
+                // Création via instance secondaire pour ne pas déconnecter l'admin
+                const newCred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+                await secondaryAuth.signOut(); // Nettoyage
+                
+                // Enregistrement des rôles dans Firestore
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', newCred.user.uid), {
+                    email: email,
+                    name: name,
+                    role: 'owner',
+                    createdAt: new Date().getTime()
+                });
+                
+                closeModal();
+                customAlert("Compte propriétaire créé et sécurisé avec succès !");
+            } catch (err) {
+                console.error(err);
+                btn.innerHTML = 'Créer Compte Sécurisé';
+                btn.disabled = false;
+                customAlert("Erreur lors de la création : " + err.message, true);
+            }
         };
 
         window.saveDriver = async (e) => {
             e.preventDefault();
-            if(!fbUser) return;
             const ownerId = resolveOwnerId();
-            if(!ownerId) return customAlert("Propriétaire non défini.");
+            if(!ownerId) return customAlert("Propriétaire non défini.", true);
             
-            const data = {
+            await addDoc(getColRef('drivers'), {
                 ownerId: ownerId,
                 lastName: document.getElementById('dLastName').value,
                 firstName: document.getElementById('dFirstName').value,
-                address: document.getElementById('dAddress').value,
                 phone: document.getElementById('dPhone').value,
-                idCard: document.getElementById('dIdCard').value,
-                license: document.getElementById('dLicense').value,
-                medicalVisitExpiry: document.getElementById('dMed').value || null,
+                dailyExpected: parseFloat(document.getElementById('dExpected').value),
                 status: "actif",
                 timestamp: new Date().getTime()
-            };
-            await addDoc(getColRef('drivers'), data);
-            closeModal();
-        };
-
-        window.updateDriver = async (e, id) => {
-            e.preventDefault();
-            if(!fbUser) return;
-            const data = {
-                lastName: document.getElementById('editDLastName').value,
-                firstName: document.getElementById('editDFirstName').value,
-                address: document.getElementById('editDAddress').value,
-                phone: document.getElementById('editDPhone').value,
-                idCard: document.getElementById('editDIdCard').value,
-                license: document.getElementById('editDLicense').value
-            };
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drivers', id), data);
-            closeModal();
-        };
-
-        window.deleteDriver = (id) => {
-            if(!fbUser) return;
-            customConfirm("Êtes-vous sûr de vouloir supprimer ce chauffeur ?", async () => {
-                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drivers', id));
             });
-        };
-
-        window.updateDriverDocs = async (e, id) => {
-            e.preventDefault();
-            if(!fbUser) return;
-            const data = {
-                medicalVisitExpiry: document.getElementById('editMed').value || null
-            };
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drivers', id), data);
-            closeModal();
-            customAlert("Dossier médical mis à jour !");
-        };
-
-        window.saveRevenue = async (e) => {
-            e.preventDefault();
-            if(!fbUser) return;
-            const plate = document.getElementById('revVehicle').value;
-            const veh = vehicles.find(v => v.plate === plate);
-            if(!veh) return customAlert("Erreur: Véhicule inconnu.");
-
-            const brut = parseFloat(document.getElementById('revBrut').value);
-            const data = {
-                ownerId: veh.ownerId,
-                date: document.getElementById('revDate').value,
-                vehicle: plate,
-                motif: document.getElementById('revMotif').value,
-                brut: brut,
-                timestamp: new Date().getTime()
-            };
-            await addDoc(getColRef('revenues'), data);
             closeModal();
         };
 
-        window.saveExpense = async (e) => {
+        window.saveVehicle = async (e) => {
             e.preventDefault();
-            if(!fbUser) return;
-            const plate = document.getElementById('expVehicle').value;
-            const veh = vehicles.find(v => v.plate === plate);
-            if(!veh) return customAlert("Erreur: Véhicule inconnu.");
-
-            const data = {
-                ownerId: veh.ownerId,
-                date: document.getElementById('expDate').value,
-                vehicle: plate,
-                type: document.getElementById('expType').value,
-                amount: parseFloat(document.getElementById('expAmount').value),
-                description: document.getElementById('expDesc').value,
-                timestamp: new Date().getTime()
-            };
-            await addDoc(getColRef('expenses'), data);
-            closeModal();
-        };
-
-        window.deleteLedgerItem = (type, id) => {
-            if(!fbUser) return;
-            customConfirm("Supprimer cette opération ? Cette action est irréversible.", async () => {
-                const col = type === 'rev' ? 'revenues' : 'expenses';
-                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', col, id));
-            });
-        };
-
-        // ==========================================
-        // 7. GESTION DES DATES & ALERTES DOCUMENTS
-        // ==========================================
-        function getDocStatus(dateString) {
-            if (!dateString) return { state: 'empty', label: 'Non défini', bg: 'bg-gray-800', text: 'text-gray-500' };
+            const ownerId = resolveOwnerId();
+            if(!ownerId) return customAlert("Propriétaire non défini.", true);
             
-            const today = new Date();
-            today.setHours(0,0,0,0);
-            const expDate = new Date(dateString);
-            const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+            await addDoc(getColRef('vehicles'), {
+                ownerId: ownerId,
+                brand: document.getElementById('vBrand').value,
+                plate: document.getElementById('vPlate').value,
+                assignedDriverId: document.getElementById('vDriver').value || null,
+                status: document.getElementById('vStatus').value,
+                timestamp: new Date().getTime()
+            });
+            closeModal();
+        };
 
-            if (diffDays <= 0) return { state: 'expired', label: 'Expiré', bg: 'bg-red-500/20 border border-red-500/50', text: 'text-red-400 font-bold' };
-            if (diffDays <= 30) return { state: 'warning', label: `J-${diffDays}`, bg: 'bg-orange-500/20 border border-orange-500/50', text: 'text-orange-400 font-bold' };
-            return { state: 'valid', label: 'Valide', bg: 'bg-green-500/10 border border-green-500/30', text: 'text-green-400' };
-        }
+        window.savePayment = async (e) => {
+            e.preventDefault();
+            const driverId = document.getElementById('payDriver').value;
+            const driver = drivers.find(d => d.id === driverId);
+            if(!driver) return;
+
+            const expected = parseFloat(document.getElementById('payExpected').value);
+            const paid = parseFloat(document.getElementById('payAmount').value);
+            
+            await addDoc(getColRef('driverPayments'), {
+                ownerId: driver.ownerId,
+                driverId: driverId,
+                driverName: `${driver.firstName} ${driver.lastName}`,
+                date: document.getElementById('payDate').value,
+                expected: expected,
+                paid: paid,
+                difference: paid - expected,
+                note: document.getElementById('payNote').value,
+                timestamp: new Date().getTime()
+            });
+            closeModal();
+        };
+
+        window.saveMaintenance = async (e) => {
+            e.preventDefault();
+            const vehicleId = document.getElementById('maintVehicle').value;
+            const veh = vehicles.find(v => v.id === vehicleId);
+            if(!veh) return;
+
+            await addDoc(getColRef('maintenanceLogs'), {
+                ownerId: veh.ownerId,
+                vehicleId: vehicleId,
+                vehiclePlate: veh.plate,
+                date: document.getElementById('maintDate').value,
+                type: document.getElementById('maintType').value,
+                cost: parseFloat(document.getElementById('maintCost').value),
+                description: document.getElementById('maintDesc').value,
+                nextDate: document.getElementById('maintNextDate').value || null,
+                timestamp: new Date().getTime()
+            });
+            closeModal();
+        };
+
+        window.deleteDocItem = (collectionName, id) => {
+            customConfirm("Supprimer cet élément ? Action irréversible.", async () => {
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', collectionName, id));
+            });
+        };
 
         // ==========================================
-        // 8. MISE À JOUR DE L'INTERFACE (UI)
+        // 5. MOTEUR DE RENDU (UI & CALCULS)
         // ==========================================
+        function getOwnerName(id) { const u = users.find(u => u.id === id); return u ? u.name : 'Inconnu'; }
         
-        function getOwnerName(id) {
-            const u = users.find(u => u.id === id);
-            return u ? u.name : 'Inconnu';
-        }
-
         function updateAdminDropdown() {
             const select = document.getElementById('ownerFilter');
             const currentVal = select.value;
-            select.innerHTML = `<option value="all">🌐 Tous les parcs</option>` + 
-                users.filter(u => u.role !== 'admin').map(o => `<option value="${o.id}">🏢 ${o.name}</option>`).join('');
-            if(users.find(u => u.id === currentVal)) select.value = currentVal;
+            select.innerHTML = `<option value="all">🌐 Tous les parcs</option>` + users.filter(u => u.role !== 'admin').map(o => `<option value="${o.id}">🏢 ${o.name}</option>`).join('');
+            select.value = currentVal;
         }
 
         function updateUI() {
-            const fVehicles = currentOwnerFilter === 'all' ? vehicles : vehicles.filter(v => v.ownerId === currentOwnerFilter);
-            const fDrivers = currentOwnerFilter === 'all' ? drivers : drivers.filter(d => d.ownerId === currentOwnerFilter);
-            const fRevs = currentOwnerFilter === 'all' ? revenues : revenues.filter(r => r.ownerId === currentOwnerFilter);
-            const fExps = currentOwnerFilter === 'all' ? expenses : expenses.filter(e => e.ownerId === currentOwnerFilter);
+            const fVeh = currentOwnerFilter === 'all' ? vehicles : vehicles.filter(v => v.ownerId === currentOwnerFilter);
+            const fDrv = currentOwnerFilter === 'all' ? drivers : drivers.filter(d => d.ownerId === currentOwnerFilter);
+            const fPay = currentOwnerFilter === 'all' ? payments : payments.filter(p => p.ownerId === currentOwnerFilter);
+            const fMnt = currentOwnerFilter === 'all' ? maintenances : maintenances.filter(m => m.ownerId === currentOwnerFilter);
 
-            // DASHBOARD STATS
-            document.getElementById('statVehicles').textContent = fVehicles.length;
+            // --- CALCULS GLOBAUX ---
+            let totalRecettes = fPay.reduce((acc, p) => acc + p.paid, 0);
+            let totalDepenses = fMnt.reduce((acc, m) => acc + m.cost, 0);
+            let net = totalRecettes - totalDepenses;
             
-            let vehActifs = fVehicles.filter(v => v.status === 'actif').length;
-            let tauxDispo = fVehicles.length > 0 ? Math.round((vehActifs / fVehicles.length) * 100) : 0;
-            document.getElementById('statDispo').textContent = `${tauxDispo}% dispo.`;
-            document.getElementById('statDispo').className = `text-xs px-2 py-1 rounded border inline-block ${tauxDispo > 70 ? 'bg-green-900/30 text-green-400 border-green-500/30' : 'bg-red-900/30 text-red-400 border-red-500/30'}`;
+            document.getElementById('statVehicles').textContent = fVeh.length;
+            document.getElementById('statDispo').textContent = fVeh.length ? Math.round((fVeh.filter(v => v.status === 'actif').length / fVeh.length)*100) + '% Actifs' : '0%';
+            document.getElementById('statRevenue').textContent = totalRecettes.toLocaleString() + ' F';
+            document.getElementById('statExpenses').textContent = totalDepenses.toLocaleString() + ' F';
+            document.getElementById('statNet').textContent = net.toLocaleString() + ' F';
 
-            let sumBrut = fRevs.reduce((acc, r) => acc + r.brut, 0);
-            let sumExpenses = fExps.reduce((acc, e) => acc + e.amount, 0);
-            let globalNet = sumBrut - sumExpenses;
+            // --- MODULE VERSEMENTS (TABLE & KPI) ---
+            let payMois = 0; let manqueGlobal = 0;
+            const currentMonth = new Date().getMonth();
+            fPay.forEach(p => {
+                if(new Date(p.date).getMonth() === currentMonth) payMois += p.paid;
+                if(p.difference < 0) manqueGlobal += Math.abs(p.difference);
+            });
+            document.getElementById('kpiTotalPaid').textContent = payMois.toLocaleString() + ' F';
+            document.getElementById('kpiTotalMissing').textContent = manqueGlobal.toLocaleString() + ' F';
 
-            document.getElementById('statRevenue').textContent = sumBrut.toLocaleString() + ' F';
-            document.getElementById('statExpenses').textContent = sumExpenses.toLocaleString() + ' F';
-            document.getElementById('statNet').textContent = globalNet.toLocaleString() + ' F';
-            if(globalNet < 0) {
-                document.getElementById('statNet').classList.replace('text-yango-yellow', 'text-red-400');
-            } else {
-                document.getElementById('statNet').classList.replace('text-red-400', 'text-yango-yellow');
-            }
-
-            // GESTION DES DOCUMENTS & ALERTES
-            let expiredCount = 0;
-            let warningCount = 0;
-            let validCount = 0;
-
-            const docsHtml = fVehicles.map(v => {
-                const insSt = getDocStatus(v.insuranceExpiry);
-                const techSt = getDocStatus(v.techVisitExpiry);
-                const patSt = getDocStatus(v.licenseExpiry);
-                const taxSt = getDocStatus(v.cityTaxExpiry);
-                const extSt = getDocStatus(v.extinguisherExpiry);
-
-                // Compteurs globaux
-                [insSt.state, techSt.state, patSt.state, taxSt.state, extSt.state].forEach(st => {
-                    if(st === 'expired') expiredCount++;
-                    if(st === 'warning') warningCount++;
-                    if(st === 'valid') validCount++;
-                });
-
+            document.getElementById('paymentsTable').innerHTML = fPay.sort((a,b)=>b.timestamp-a.timestamp).map(p => {
+                const isDette = p.difference < 0;
+                const statusBadge = isDette ? `<span class="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs font-bold">Dette</span>` : (p.difference > 0 ? `<span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-bold">Surplus</span>` : `<span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-bold">Complet</span>`);
+                const diffColor = isDette ? 'text-red-400' : (p.difference > 0 ? 'text-blue-400' : 'text-gray-500');
                 return `
-                <tr class="hover:bg-white/5 border-b border-gray-700/50">
-                    <td class="px-6 py-4">
-                        <div class="font-bold text-white">${v.brand}</div>
-                        <div class="text-xs text-gray-400">${v.plate}</div>
-                    </td>
-                    <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] ${insSt.bg} ${insSt.text} whitespace-nowrap">${insSt.label}</span></td>
-                    <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] ${techSt.bg} ${techSt.text} whitespace-nowrap">${techSt.label}</span></td>
-                    <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] ${patSt.bg} ${patSt.text} whitespace-nowrap">${patSt.label}</span></td>
-                    <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] ${taxSt.bg} ${taxSt.text} whitespace-nowrap">${taxSt.label}</span></td>
-                    <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] ${extSt.bg} ${extSt.text} whitespace-nowrap">${extSt.label}</span></td>
-                    <td class="px-6 py-4 text-center">
-                        <button onclick="openModal('editDocuments', '${v.id}')" class="text-blue-400 hover:text-blue-300 text-xs border border-blue-500/30 px-3 py-1.5 rounded-lg bg-blue-500/10">MàJ</button>
-                    </td>
+                <tr class="border-b border-gray-700/50 hover:bg-white/5">
+                    <td class="px-6 py-3">${p.date}</td>
+                    <td class="px-6 py-3 font-bold text-white">${p.driverName}</td>
+                    <td class="px-6 py-3 text-gray-400">${p.expected.toLocaleString()} F</td>
+                    <td class="px-6 py-3 font-bold text-green-400">${p.paid.toLocaleString()} F</td>
+                    <td class="px-6 py-3 font-bold ${diffColor}">${p.difference > 0 ? '+'+p.difference.toLocaleString() : p.difference.toLocaleString()} F</td>
+                    <td class="px-6 py-3 text-center">${statusBadge}</td>
+                    <td class="px-6 py-3 text-right"><button onclick="deleteDocItem('driverPayments', '${p.id}')" class="text-red-400"><i class="fas fa-trash"></i></button></td>
                 </tr>`;
             }).join('');
 
-            document.getElementById('docsTable').innerHTML = docsHtml || `<tr><td colspan="7" class="text-center py-6 text-gray-500">Aucun véhicule enregistré.</td></tr>`;
-            
-            const driverDocsHtml = fDrivers.map(d => {
-                const medSt = getDocStatus(d.medicalVisitExpiry);
+            // --- MODULE CHAUFFEURS & SCORE ---
+            document.getElementById('driversTable').innerHTML = fDrv.map(d => {
+                const myPayments = fPay.filter(p => p.driverId === d.id);
+                let totEx = myPayments.reduce((s,p)=>s+p.expected, 0);
+                let totPd = myPayments.reduce((s,p)=>s+p.paid, 0);
+                let score = totEx > 0 ? Math.min(100, Math.round((totPd / totEx) * 100)) : 100;
+                let scoreColor = score >= 90 ? 'text-green-400' : (score >= 70 ? 'text-orange-400' : 'text-red-400');
                 
-                [medSt.state].forEach(st => {
-                    if(st === 'expired') expiredCount++;
-                    if(st === 'warning') warningCount++;
-                    if(st === 'valid') validCount++;
-                });
+                const assignedVeh = fVeh.find(v => v.assignedDriverId === d.id);
+                const vehText = assignedVeh ? `<span class="text-xs bg-blue-900/40 text-blue-300 px-2 py-1 rounded border border-blue-500/30">${assignedVeh.plate}</span>` : '<span class="text-xs text-gray-500">Aucun</span>';
 
                 return `
-                <tr class="hover:bg-white/5 border-b border-gray-700/50">
+                <tr class="border-b border-gray-700/50 hover:bg-white/5">
+                    <td class="px-6 py-4 font-bold text-white">${d.firstName} ${d.lastName}</td>
                     <td class="px-6 py-4">
-                        <div class="font-bold text-white">${d.lastName} ${d.firstName}</div>
+                        <span class="text-sm text-gray-300">${d.phone}</span>
+                        <a href="https://wa.me/${d.phone.replace(/\+/g,'')}?text=Bonjour ${d.firstName}, message concernant votre activité Yango." target="_blank" class="ml-2 text-green-500 hover:text-green-400" title="Contacter sur WhatsApp"><i class="fab fa-whatsapp text-lg"></i></a>
                     </td>
-                    <td class="px-6 py-4 text-sm text-gray-400">${d.phone}</td>
-                    <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] ${medSt.bg} ${medSt.text} whitespace-nowrap">${medSt.label}</span></td>
+                    <td class="px-6 py-4">${vehText}</td>
+                    <td class="px-6 py-4 text-yango-yellow font-bold">${d.dailyExpected.toLocaleString()} F/j</td>
                     <td class="px-6 py-4 text-center">
-                        <button onclick="openModal('editDriverDocs', '${d.id}')" class="text-blue-400 hover:text-blue-300 text-xs border border-blue-500/30 px-3 py-1.5 rounded-lg bg-blue-500/10">MàJ</button>
+                        <div class="flex items-center justify-center gap-2">
+                            <div class="w-full bg-gray-700 rounded-full h-2 max-w-[50px]"><div class="h-2 rounded-full ${score>=90?'bg-green-500':(score>=70?'bg-orange-500':'bg-red-500')}" style="width: ${score}%"></div></div>
+                            <span class="font-bold ${scoreColor} text-sm">${score}%</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="deleteDocItem('drivers', '${d.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;
             }).join('');
-            
-            document.getElementById('driverDocsTable').innerHTML = driverDocsHtml || `<tr><td colspan="4" class="text-center py-6 text-gray-500">Aucun chauffeur enregistré.</td></tr>`;
 
-            // Mise à jour des badges
-            document.getElementById('docExpiredCount').textContent = expiredCount;
-            document.getElementById('docWarningCount').textContent = warningCount;
-            document.getElementById('docOkCount').textContent = validCount;
-
-            const totalAlerts = expiredCount + warningCount;
-            const navBadge = document.getElementById('navDocAlert');
-            const dashAlertsArea = document.getElementById('dashAlertsArea');
-
-            if (totalAlerts > 0) {
-                navBadge.textContent = totalAlerts;
-                navBadge.classList.remove('hidden');
-                dashAlertsArea.classList.remove('hidden');
-            } else {
-                navBadge.classList.add('hidden');
-                dashAlertsArea.classList.add('hidden');
-            }
-
-            // GRILLE VÉHICULES
-            document.getElementById('vehiclesGrid').innerHTML = fVehicles.map(v => `
-                <div class="glass rounded-2xl p-5 border border-gray-700/50 relative group transition-all">
-                    <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onclick="openModal('editVehicle', '${v.id}')" class="text-blue-400 hover:text-blue-300 w-8 h-8 rounded-full bg-gray-800/80 flex items-center justify-center border border-gray-600" title="Modifier infos"><i class="fas fa-edit"></i></button>
-                        <button onclick="deleteVehicle('${v.id}')" class="text-red-400 hover:text-red-300 w-8 h-8 rounded-full bg-gray-800/80 flex items-center justify-center border border-gray-600" title="Supprimer"><i class="fas fa-trash"></i></button>
+            // --- MODULE VÉHICULES ---
+            document.getElementById('vehiclesGrid').innerHTML = fVeh.map(v => {
+                const driver = fDrv.find(d => d.id === v.assignedDriverId);
+                const dName = driver ? `${driver.firstName} ${driver.lastName}` : 'Non assigné';
+                return `
+                <div class="glass rounded-2xl p-5 border border-gray-700/50 relative group">
+                    <button onclick="deleteDocItem('vehicles', '${v.id}')" class="absolute top-4 right-4 text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-800 p-2 rounded-full"><i class="fas fa-trash"></i></button>
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-[10px] uppercase font-bold text-gray-500">${getOwnerName(v.ownerId)}</span>
+                        <span class="status-dot status-${v.status}"></span>
                     </div>
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <span class="text-[10px] uppercase font-bold text-gray-500">${getOwnerName(v.ownerId)}</span>
-                            <h4 class="font-bold text-lg mt-1 pr-16">${v.brand}</h4>
-                            <span class="text-xs text-yango-yellow bg-gray-800 px-2 py-1 rounded border border-gray-700 inline-block mt-2">${v.plate}</span>
-                        </div>
-                        <span class="status-dot status-${v.status} mt-2"></span>
+                    <h4 class="font-bold text-lg text-white">${v.brand}</h4>
+                    <span class="text-xs text-yango-yellow bg-gray-800 px-2 py-1 rounded border border-gray-700 inline-block mt-2">${v.plate}</span>
+                    <div class="mt-4 pt-3 border-t border-gray-700 text-sm flex items-center">
+                        <i class="fas fa-user-tie text-gray-500 mr-2"></i> <span class="text-gray-300">${dName}</span>
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
 
-            // TABLE CHAUFFEURS
-            document.getElementById('driversTable').innerHTML = fDrivers.map(d => `
-                <tr class="hover:bg-white/5 border-b border-gray-700/50">
-                    <td class="px-6 py-4">
-                        <div class="font-bold text-white">${d.lastName} ${d.firstName}</div>
-                    </td>
-                    <td class="px-6 py-4">
-                        <div class="text-sm text-gray-300"><i class="fas fa-phone mr-2 text-gray-500"></i>${d.phone}</div>
-                        <div class="text-xs text-gray-400 mt-1"><i class="fas fa-map-marker-alt mr-2 text-gray-500"></i>${d.address}</div>
-                    </td>
-                    <td class="px-6 py-4">
-                        <div class="text-xs text-gray-400">ID: <span class="text-gray-300">${d.idCard}</span></div>
-                        <div class="text-xs text-gray-400 mt-1">Permis: <span class="text-gray-300">${d.license}</span></div>
-                    </td>
-                    <td class="px-6 py-4"><span class="text-xs bg-gray-800 px-2 py-1 rounded border border-gray-700">${getOwnerName(d.ownerId)}</span></td>
-                    <td class="px-6 py-4 text-right">
-                        <button onclick="openModal('editDriver', '${d.id}')" class="text-blue-400 hover:text-blue-300 mr-3" title="Modifier"><i class="fas fa-edit"></i></button>
-                        <button onclick="deleteDriver('${d.id}')" class="text-red-400 hover:text-red-300" title="Supprimer"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>
-            `).join('');
+            // --- MODULE MAINTENANCE ---
+            document.getElementById('maintenanceTable').innerHTML = fMnt.sort((a,b)=>b.timestamp-a.timestamp).map(m => `
+                <tr class="border-b border-gray-700/50 hover:bg-white/5">
+                    <td class="px-6 py-3">${m.date}</td>
+                    <td class="px-6 py-3 font-bold text-white">${m.vehiclePlate}</td>
+                    <td class="px-6 py-3"><span class="px-2 py-1 bg-gray-800 rounded border border-gray-600 text-xs">${m.type}</span></td>
+                    <td class="px-6 py-3 font-bold text-red-400">-${m.cost.toLocaleString()} F</td>
+                    <td class="px-6 py-3 text-orange-300 text-sm">${m.nextDate || '-'}</td>
+                    <td class="px-6 py-3 text-right"><button onclick="deleteDocItem('maintenanceLogs', '${m.id}')" class="text-red-400"><i class="fas fa-trash"></i></button></td>
+                </tr>`).join('');
 
-            // GRAND LIVRE (Recettes + Dépenses)
-            let ledgerItems = [];
-            if(currentLedgerTab === 'all' || currentLedgerTab === 'revenues') {
-                fRevs.forEach(r => ledgerItems.push({...r, _type: 'rev'}));
-            }
-            if(currentLedgerTab === 'all' || currentLedgerTab === 'expenses') {
-                fExps.forEach(e => ledgerItems.push({...e, _type: 'exp'}));
-            }
-            
-            ledgerItems.sort((a,b) => b.timestamp - a.timestamp);
-
-            document.getElementById('ledgerTable').innerHTML = ledgerItems.map(item => {
-                if(item._type === 'rev') {
-                    return `
-                    <tr class="hover:bg-white/5 border-b border-gray-700/50 bg-green-900/5">
-                        <td class="px-4 py-3 text-sm">${item.date}</td>
-                        <td class="px-4 py-3"><span class="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">${item.motif}</span></td>
-                        <td class="px-4 py-3 text-sm font-medium">${item.vehicle}</td>
-                        <td class="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell">-</td>
-                        <td class="px-4 py-3 text-sm text-right text-gray-300">${item.brut.toLocaleString()} F</td>
-                        <td class="px-4 py-3 text-sm text-right font-bold text-green-400">+${item.brut.toLocaleString()} F</td>
-                        <td class="px-4 py-3 text-center no-print">
-                            <button onclick="deleteLedgerItem('rev', '${item.id}')" class="text-red-400 hover:text-red-300" title="Supprimer"><i class="fas fa-trash"></i></button>
-                        </td>
+            // --- GRAND LIVRE (MIX VERSEMENTS / DEPENSES) ---
+            let ledger = [...fPay.map(p=>({...p, _isR:true})), ...fMnt.map(m=>({...m, _isR:false}))].sort((a,b)=>b.timestamp-a.timestamp);
+            document.getElementById('ledgerTable').innerHTML = ledger.map(l => {
+                if(l._isR) {
+                    return `<tr class="border-b border-gray-700/50 bg-green-900/5 text-sm">
+                        <td class="px-4 py-2">${l.date}</td>
+                        <td class="px-4 py-2 text-green-400">Versement Chauffeur</td>
+                        <td class="px-4 py-2 font-medium">${l.driverName}</td>
+                        <td class="px-4 py-2 text-gray-400 hidden lg:table-cell">${l.note || '-'}</td>
+                        <td class="px-4 py-2 text-right font-bold text-green-400">+${l.paid.toLocaleString()} F</td>
                     </tr>`;
                 } else {
-                    return `
-                    <tr class="hover:bg-white/5 border-b border-gray-700/50 bg-red-900/5">
-                        <td class="px-4 py-3 text-sm">${item.date}</td>
-                        <td class="px-4 py-3"><span class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">${item.type}</span></td>
-                        <td class="px-4 py-3 text-sm font-medium">${item.vehicle}</td>
-                        <td class="px-4 py-3 text-xs text-gray-400 hidden lg:table-cell truncate max-w-[150px]">${item.description || '-'}</td>
-                        <td class="px-4 py-3 text-sm text-right text-gray-500">-</td>
-                        <td class="px-4 py-3 text-sm text-right font-bold text-red-400">-${item.amount.toLocaleString()} F</td>
-                        <td class="px-4 py-3 text-center no-print">
-                            <button onclick="deleteLedgerItem('exp', '${item.id}')" class="text-red-400 hover:text-red-300" title="Supprimer"><i class="fas fa-trash"></i></button>
-                        </td>
+                    return `<tr class="border-b border-gray-700/50 bg-red-900/5 text-sm">
+                        <td class="px-4 py-2">${l.date}</td>
+                        <td class="px-4 py-2 text-red-400">Dépense: ${l.type}</td>
+                        <td class="px-4 py-2 font-medium">${l.vehiclePlate}</td>
+                        <td class="px-4 py-2 text-gray-400 hidden lg:table-cell">${l.description}</td>
+                        <td class="px-4 py-2 text-right font-bold text-red-400">-${l.cost.toLocaleString()} F</td>
                     </tr>`;
                 }
-            }).join('') || `<tr><td colspan="7" class="text-center py-6 text-gray-500">Aucune opération trouvée.</td></tr>`;
+            }).join('');
 
-            // TABLE ADMIN (Propriétaires)
+            // Mise à jour de l'onglet Admin (Sécurité)
             if(loggedInUser && loggedInUser.role === 'admin') {
-                document.getElementById('ownersTable').innerHTML = users.filter(u=>u.role!=='admin').map(u => {
-                    return `
-                        <tr class="border-b border-gray-700/50">
-                            <td class="px-6 py-4 text-sm font-mono text-gray-400">${u.username}</td>
-                            <td class="px-6 py-4 font-bold text-white">${u.name}</td>
-                            <td class="px-6 py-4"><span class="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded">Propriétaire</span></td>
-                        </tr>
-                    `;
-                }).join('');
+                document.getElementById('ownersTable').innerHTML = users.map(u => `
+                    <tr class="border-b border-gray-700/50">
+                        <td class="px-6 py-4 text-sm text-gray-400">${u.email}</td>
+                        <td class="px-6 py-4 font-bold text-white">${u.name}</td>
+                        <td class="px-6 py-4"><span class="text-xs ${u.role==='admin'?'bg-red-500/20 text-red-400':'bg-purple-500/20 text-purple-400'} px-2 py-1 rounded">${u.role.toUpperCase()}</span></td>
+                        <td class="px-6 py-4 text-right">${u.id===loggedInUser.id ? '<span class="text-gray-500 text-xs">Vous</span>' : '<span class="text-gray-500 text-xs">Auth Gérée</span>'}</td>
+                    </tr>`).join('');
             }
-        }
-
-        // ==========================================
-        // 9. CHART.JS (ANALYTICS)
-        // ==========================================
-        function initCharts() {
-            const ctx1 = document.getElementById('financeChart').getContext('2d');
-            chartFinance = new Chart(ctx1, {
-                type: 'bar',
-                data: { labels: ['Recettes Brutes', 'Dépenses Totales'], datasets: [] },
-                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' } } } }
-            });
-
-            const ctx2 = document.getElementById('fleetChart').getContext('2d');
-            chartFleet = new Chart(ctx2, {
-                type: 'doughnut',
-                data: { labels: ['Actifs', 'Maintenance', 'Inactifs'], datasets: [] },
-                options: { responsive: true, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { color: '#fff' } } } }
-            });
-
-            const ctx3 = document.getElementById('topVehiclesChart').getContext('2d');
-            chartTopVehicles = new Chart(ctx3, {
-                type: 'bar',
-                data: { labels: [], datasets: [] },
-                options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.05)' } } } }
-            });
-
-            const ctx4 = document.getElementById('expensesChart').getContext('2d');
-            chartExpenses = new Chart(ctx4, {
-                type: 'pie',
-                data: { labels: [], datasets: [] },
-                options: { responsive: true, plugins: { legend: { position: 'right', labels: { color: '#fff' } } } }
-            });
-
+            
             updateCharts();
         }
 
+        // ==========================================
+        // 6. CHARTS (ANALYTICS AVANCÉ)
+        // ==========================================
+        function initCharts() {
+            const ctx1 = document.getElementById('profitChart').getContext('2d');
+            profitChart = new Chart(ctx1, { type: 'bar', data: { labels: [], datasets: [] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#374151' } } } } });
+
+            const ctx2 = document.getElementById('driverScoreChart').getContext('2d');
+            driverScoreChart = new Chart(ctx2, { type: 'doughnut', data: { labels: ['Excellent (>90%)', 'Moyen (>70%)', 'Critique (<70%)'], datasets: [] }, options: { responsive: true, cutout: '75%', plugins: { legend: { position: 'bottom', labels: { color: '#fff' } } } } });
+        }
+
         function updateCharts() {
-            if(!chartFinance) return;
-            
-            const fVehicles = currentOwnerFilter === 'all' ? vehicles : vehicles.filter(v => v.ownerId === currentOwnerFilter);
-            const fRevs = currentOwnerFilter === 'all' ? revenues : revenues.filter(r => r.ownerId === currentOwnerFilter);
-            const fExps = currentOwnerFilter === 'all' ? expenses : expenses.filter(e => e.ownerId === currentOwnerFilter);
-            
-            // 1. Finance Bar
-            let sumNetRev = fRevs.reduce((acc, r) => acc + r.brut, 0);
-            let sumExp = fExps.reduce((acc, e) => acc + e.amount, 0);
+            if(!profitChart) initCharts();
+            const fVeh = currentOwnerFilter === 'all' ? vehicles : vehicles.filter(v => v.ownerId === currentOwnerFilter);
+            const fDrv = currentOwnerFilter === 'all' ? drivers : drivers.filter(d => d.ownerId === currentOwnerFilter);
+            const fPay = currentOwnerFilter === 'all' ? payments : payments.filter(p => p.ownerId === currentOwnerFilter);
+            const fMnt = currentOwnerFilter === 'all' ? maintenances : maintenances.filter(m => m.ownerId === currentOwnerFilter);
 
-            chartFinance.data = {
-                labels: ['Recettes', 'Dépenses'],
-                datasets: [{
-                    data: [sumNetRev, sumExp],
-                    backgroundColor: ['#22c55e', '#ef4444'],
-                    borderRadius: 4
-                }]
-            };
-            chartFinance.update();
+            // Rentabilité par Véhicule :
+            // Pour associer les versements aux véhicules, on regarde le chauffeur assigné. 
+            // C'est une approximation utile pour le dashboard.
+            let vehStats = fVeh.map(v => {
+                let vMaint = fMnt.filter(m => m.vehicleId === v.id).reduce((s,m)=>s+m.cost, 0);
+                // Revenus du véhicule = Versements du chauffeur assigné
+                let vRev = fPay.filter(p => p.driverId === v.assignedDriverId).reduce((s,p)=>s+p.paid, 0);
+                return { plate: v.plate, net: vRev - vMaint };
+            }).sort((a,b) => b.net - a.net).slice(0, 6);
 
-            // 2. Donuts Flotte
-            const vActif = fVehicles.filter(v => v.status === 'actif').length;
-            const vMaint = fVehicles.filter(v => v.status === 'maintenance').length;
-            const vInactif = fVehicles.filter(v => v.status === 'inactif').length;
-
-            chartFleet.data.datasets = [{ data: [vActif, vMaint, vInactif], backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'], borderWidth: 0 }];
-            chartFleet.update();
-
-            // 3. Top Vehicles
-            let vehStats = fVehicles.map(v => {
-                let vRev = fRevs.filter(r => r.vehicle === v.plate).reduce((s, r) => s + r.brut, 0);
-                let vExp = fExps.filter(e => e.vehicle === v.plate).reduce((s, e) => s + e.amount, 0);
-                return { plate: v.plate, net: vRev - vExp };
-            }).sort((a,b) => b.net - a.net).slice(0, 5);
-
-            chartTopVehicles.data = {
+            profitChart.data = {
                 labels: vehStats.map(v => v.plate),
-                datasets: [{
-                    label: 'Net Généré',
-                    data: vehStats.map(v => v.net),
-                    backgroundColor: '#3b82f6',
-                    borderRadius: 4
-                }]
+                datasets: [{ data: vehStats.map(v => v.net), backgroundColor: vehStats.map(v => v.net>=0?'#22c55e':'#ef4444'), borderRadius: 4 }]
             };
-            chartTopVehicles.update();
+            profitChart.update();
 
-            // 4. Expenses Breakdown
-            let expGrouped = {};
-            fExps.forEach(e => {
-                expGrouped[e.type] = (expGrouped[e.type] || 0) + e.amount;
+            // Scores Chauffeurs
+            let scores = { ex: 0, moy: 0, crit: 0 };
+            fDrv.forEach(d => {
+                let myP = fPay.filter(p => p.driverId === d.id);
+                let tE = myP.reduce((s,p)=>s+p.expected, 0);
+                let tP = myP.reduce((s,p)=>s+p.paid, 0);
+                if(tE === 0) return;
+                let pct = (tP/tE)*100;
+                if(pct >= 90) scores.ex++; else if(pct >= 70) scores.moy++; else scores.crit++;
             });
-            const expLabels = Object.keys(expGrouped);
-            const expData = Object.values(expGrouped);
-            const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899'];
 
-            chartExpenses.data = {
-                labels: expLabels.length ? expLabels : ['Aucune dépense'],
-                datasets: [{
-                    data: expData.length ? expData : [1],
-                    backgroundColor: expData.length ? colors.slice(0, expLabels.length) : ['#374151'],
-                    borderWidth: 0
-                }]
-            };
-            chartExpenses.update();
+            driverScoreChart.data.datasets = [{ data: [scores.ex, scores.moy, scores.crit], backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'], borderWidth: 0 }];
+            driverScoreChart.update();
         }
     </script>
 </body>
