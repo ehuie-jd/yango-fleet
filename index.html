@@ -73,13 +73,6 @@
                     Se connecter
                 </button>
             </form>
-            
-            <div class="mt-6 p-4 bg-gray-800/50 rounded-lg text-xs text-left text-gray-400 border border-gray-700">
-                <p class="font-bold text-gray-300 mb-1">Comptes de démo :</p>
-                <p>- Admin : <span class="text-yango-yellow">admin</span> / <span class="text-white">admin123</span></p>
-                <p>- Prop. A : <span class="text-yango-yellow">propa</span> / <span class="text-white">prop123</span></p>
-                <p>- Prop. B : <span class="text-yango-yellow">propb</span> / <span class="text-white">prop123</span></p>
-            </div>
         </div>
     </div>
 
@@ -452,29 +445,15 @@
         if (typeof __firebase_config !== 'undefined') {
             firebaseConfig = JSON.parse(__firebase_config);
         } else {
-            // ⚠️ REMPLACEZ CECI PAR VOS CLÉS LORS DU DÉPLOIEMENT FINAL SUR NETLIFY/VERCEL ⚠️
+            // Configuration officielle de votre projet Yango Fleet
             firebaseConfig = {
-                // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyAKsqvTL0ZZ6PtNdXvSG1jbXbkhx3CsezU",
-  authDomain: "yango-fleet.firebaseapp.com",
-  projectId: "yango-fleet",
-  storageBucket: "yango-fleet.firebasestorage.app",
-  messagingSenderId: "331683244324",
-  appId: "1:331683244324:web:2c67450d9e8b3e7bafabb1",
-  measurementId: "G-2LDSW2KCXK"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+                apiKey: "AIzaSyAKsqvTL0ZZ6PtNdXvSG1jbXbkhx3CsezU",
+                authDomain: "yango-fleet.firebaseapp.com",
+                projectId: "yango-fleet",
+                storageBucket: "yango-fleet.firebasestorage.app",
+                messagingSenderId: "331683244324",
+                appId: "1:331683244324:web:2c67450d9e8b3e7bafabb1",
+                measurementId: "G-2LDSW2KCXK"
             };
         }
 
@@ -562,10 +541,9 @@ const analytics = getAnalytics(app);
             onSnapshot(getColRef('users'), async (snapshot) => {
                 users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
+                // Si la base est totalement vide, on crée uniquement le compte Admin initial
                 if(users.length === 0) {
-                    await addDoc(getColRef('users'), { username: 'admin', pass: 'admin123', role: 'admin', name: 'Super Admin' });
-                    await addDoc(getColRef('users'), { username: 'propa', pass: 'prop123', role: 'owner', name: 'Propriétaire A' });
-                    await addDoc(getColRef('users'), { username: 'propb', pass: 'prop123', role: 'owner', name: 'Propriétaire B' });
+                    await addDoc(getColRef('users'), { username: 'admin', pass: 'admin123', role: 'admin', name: 'Super Administrateur' });
                 }
                 
                 if (loggedInUser && loggedInUser.role === 'admin') updateAdminDropdown();
