@@ -527,7 +527,11 @@
                 }
             } catch (error) {
                 console.error("Firebase Auth Error:", error);
-                document.getElementById('loginError').textContent = "Erreur de connexion serveur.";
+                let errorMsg = "Erreur de connexion serveur.";
+                if (error.code === 'auth/operation-not-allowed') {
+                    errorMsg = "Erreur : L'authentification 'Anonyme' n'est pas activée sur Firebase.";
+                }
+                document.getElementById('loginError').textContent = errorMsg;
                 document.getElementById('loginError').classList.remove('hidden');
             }
         };
@@ -536,6 +540,12 @@
 
         function setupListeners() {
             if (!fbUser) return;
+
+            const handleError = (error) => {
+                console.error("Firestore Error:", error);
+                document.getElementById('loginError').textContent = "Erreur Firestore : Vérifiez que la base est en 'Mode Test'.";
+                document.getElementById('loginError').classList.remove('hidden');
+            };
 
             // Chargement des Utilisateurs
             onSnapshot(getColRef('users'), async (snapshot) => {
@@ -548,31 +558,31 @@
                 
                 if (loggedInUser && loggedInUser.role === 'admin') updateAdminDropdown();
                 if (loggedInUser) updateUI();
-            }, console.error);
+            }, handleError);
 
             // Chargement des Véhicules
             onSnapshot(getColRef('vehicles'), (snapshot) => {
                 vehicles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 if(loggedInUser) { updateUI(); updateCharts(); }
-            }, console.error);
+            }, handleError);
 
             // Chargement des Chauffeurs
             onSnapshot(getColRef('drivers'), (snapshot) => {
                 drivers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 if(loggedInUser) updateUI();
-            }, console.error);
+            }, handleError);
 
             // Chargement des Recettes
             onSnapshot(getColRef('revenues'), (snapshot) => {
                 revenues = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 if(loggedInUser) { updateUI(); updateCharts(); }
-            }, console.error);
+            }, handleError);
 
             // Chargement des Dépenses
             onSnapshot(getColRef('expenses'), (snapshot) => {
                 expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 if(loggedInUser) { updateUI(); updateCharts(); }
-            }, console.error);
+            }, handleError);
         }
 
         onAuthStateChanged(auth, (user) => {
