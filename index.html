@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Yango Fleet Manager - Sécurisé & Complet</title>
+    
+    <!-- Balises d'installation PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Yango Fleet">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -655,7 +663,7 @@
         let revenues = []; 
         let expenses = []; 
         let parts = []; 
-        let staff = []; 
+        let staff = [];
         
         let loggedInUser = null;
         let currentOwnerFilter = 'all'; 
@@ -761,6 +769,15 @@
             onSnapshot(getColRef('staff'), (snapshot) => { staff = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) updateUI(); }, console.error); 
         }
 
+        // Enregistrement du moteur d'application (Service Worker)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then((reg) => console.log("PWA: Moteur d'application installé.", reg.scope))
+                    .catch((err) => console.log("PWA: Erreur d'installation.", err));
+            });
+        }
+
         onAuthStateChanged(auth, (user) => { 
             fbUser = user; 
             if (user) {
@@ -836,7 +853,7 @@
             updateUI(); 
         };
 
-        // Fonction d'exportation pour l'onglet Opérations Financières
+        // Exportation CSV Opérations Financières
         window.exportToCSV = () => {
             if(!fbUser) return;
             const fRevs = currentOwnerFilter === 'all' ? revenues : revenues.filter(r => r.ownerId === currentOwnerFilter);
@@ -877,6 +894,7 @@
             document.body.removeChild(link);
         };
 
+        // Exportation PDF Opérations Financières
         window.exportToPDF = () => {
             const element = document.getElementById('ledgerExportArea');
             const printHeader = element.querySelector('h3.print-only');
@@ -909,7 +927,7 @@
             });
         };
 
-        // Fonctions d'exportation pour l'onglet Rapports & RH
+        // Exportation CSV Rapports & RH
         window.exportReportsCSV = () => {
             if(!fbUser) return;
             const fExps = currentOwnerFilter === 'all' ? expenses : expenses.filter(e => e.ownerId === currentOwnerFilter);
@@ -917,7 +935,6 @@
             let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
             csvContent += "Type;Date;Bénéficiaire / Chauffeur;Montant (FCFA);Motif / Détails\n";
 
-            // Amendes
             fExps.filter(e => e.type === "Amende / Police").forEach(item => {
                 let dName = "-";
                 if(item.driverId) { const d = drivers.find(drv => drv.id === item.driverId); if(d) dName = `${d.firstName} ${d.lastName}`; }
@@ -925,7 +942,6 @@
                 csvContent += row + "\n";
             });
 
-            // Salaires
             fExps.filter(e => e.type === "Salaire / RH").forEach(item => {
                 let dName = "-";
                 if(item.driverId) { const d = drivers.find(drv => drv.id === item.driverId); if(d) dName = `${d.firstName} ${d.lastName}`; }
@@ -942,6 +958,7 @@
             document.body.removeChild(link);
         };
 
+        // Exportation PDF Rapports & RH
         window.exportReportsPDF = () => {
             const element = document.getElementById('reportsArea');
             const printHeader = element.querySelector('h3.print-only');
@@ -1523,7 +1540,6 @@
             const expMileage = parseInt(document.getElementById('expMileage').value);
             const expNextMileage = parseInt(document.getElementById('expNextMileage').value);
 
-            // Mise à jour magique du kilométrage du véhicule
             if (plate && expMileage) {
                 const veh = vehicles.find(v => v.plate === plate);
                 if (veh) {
