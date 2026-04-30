@@ -7,6 +7,7 @@
     
     <!-- Balises d'installation PWA -->
     <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2830/2830180.png">
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -54,8 +55,8 @@
     <!-- ================= ÉCRAN DE CONNEXION ================= -->
     <div id="loginScreen" class="absolute inset-0 z-50 flex items-center justify-center bg-gray-900/95 backdrop-blur-md">
         <div class="glass rounded-2xl p-8 max-w-sm w-full border border-gray-700/50 slide-in text-center">
-            <div class="w-16 h-16 bg-yango-yellow rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-yellow-500/20">
-                <i class="fas fa-taxi text-black text-3xl"></i>
+            <div class="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-yellow-500/20 p-2">
+                <img src="https://cdn-icons-png.flaticon.com/512/2830/2830180.png" alt="Logo Yango Fleet" class="max-w-full max-h-full object-contain">
             </div>
             <h2 class="text-2xl font-bold mb-2">Yango Fleet</h2>
             <p class="text-gray-400 text-sm mb-6">Connexion sécurisée</p>
@@ -76,6 +77,7 @@
                     </div>
                 </div>
                 <div id="loginError" class="text-red-400 text-xs hidden text-center bg-red-500/10 p-2 rounded">Identifiants incorrects.</div>
+                
                 <button type="submit" id="btnLoginSubmit" class="w-full py-3 mt-2 bg-yango-yellow text-black rounded-xl font-bold hover:bg-yellow-400 transition-colors shadow-lg shadow-yellow-500/20 flex justify-center items-center">
                     <span id="loginBtnText">Se connecter</span>
                 </button>
@@ -89,8 +91,8 @@
         <aside class="w-64 glass hidden md:flex flex-col border-r border-gray-700/50 relative z-20 no-print">
             <div class="p-6 border-b border-gray-700/50">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-yango-yellow rounded-lg flex items-center justify-center">
-                        <i class="fas fa-taxi text-black text-lg"></i>
+                    <div class="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1 shadow-md shadow-yellow-500/10">
+                        <img src="https://cdn-icons-png.flaticon.com/512/2830/2830180.png" alt="Logo" class="max-w-full max-h-full object-contain">
                     </div>
                     <div>
                         <h1 class="font-bold text-lg tracking-tight">Fleet Multi</h1>
@@ -120,6 +122,9 @@
                 </button>
                 <button onclick="showSection('parts')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all">
                     <i class="fas fa-cogs w-5"></i><span class="font-medium">Pièces & Fournisseurs</span>
+                </button>
+                <button onclick="showSection('catalog')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all">
+                    <i class="fas fa-tags w-5"></i><span class="font-medium">Catalogue & Prix</span>
                 </button>
                 <button onclick="showSection('reports')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 transition-all">
                     <i class="fas fa-chart-pie w-5"></i><span class="font-medium">Rapports & RH</span>
@@ -506,7 +511,43 @@
                     </div>
                 </div>
 
-                <!-- NOUVEAU MODULE : RAPPORTS & RH -->
+                <!-- NOUVEAU MODULE : CATALOGUE & ESTIMATIONS -->
+                <div id="catalog" class="hidden space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-2xl font-bold text-blue-400">Catalogue & Estimations Prix</h2>
+                            <p class="text-gray-400 text-sm mt-1">Créez votre propre référentiel des prix des pièces selon le modèle du véhicule.</p>
+                        </div>
+                        <button onclick="openModal('addCatalog')" class="px-4 py-2 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors shadow-sm whitespace-nowrap">
+                            <i class="fas fa-plus mr-1"></i>Ajouter une estimation
+                        </button>
+                    </div>
+                    
+                    <div class="glass rounded-2xl overflow-hidden border border-gray-700/50">
+                        <div class="p-4 border-b border-gray-700 bg-gray-800/50 flex gap-4 items-center">
+                            <i class="fas fa-search text-gray-400"></i>
+                            <input type="text" id="searchCatalog" onkeyup="filterCatalog()" placeholder="Rechercher par modèle (ex: Alto) ou nom de pièce..." class="bg-transparent border-none text-white focus:outline-none w-full text-sm">
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left min-w-[800px]">
+                                <thead class="bg-white/5 border-b border-gray-700">
+                                    <tr>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Modèle Véhicule</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Catégorie</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Nom de la Pièce</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Prix Estimé (FCFA)</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="catalogTable" class="divide-y divide-gray-700/50">
+                                    <!-- Rempli par JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RAPPORTS & RH -->
                 <div id="reports" class="hidden space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
                         <div>
@@ -629,9 +670,6 @@
 
     <!-- Scripts et Logique Métier -->
     <script type="module">
-        // ==========================================
-        // 1. IMPORTATION FIREBASE & CONFIGURATION
-        // ==========================================
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -655,7 +693,129 @@
         
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-        // Variables d'état Globales
+        // LISTE COMPLÈTE DES PIÈCES CENTRALISÉE POUR RÉUTILISATION (Dépenses + Estimations)
+        const partCategoriesHtml = `
+            <optgroup label="Pièces : Moteur & Lubrification">
+                <option value="Moteur : Huile moteur 5W-30">Huile moteur 5W-30</option>
+                <option value="Moteur : Huile moteur 10W-40">Huile moteur 10W-40</option>
+                <option value="Moteur : Huile moteur 20W-50">Huile moteur 20W-50</option>
+                <option value="Moteur : Filtre à huile">Filtre à huile</option>
+                <option value="Moteur : Bouchon de vidange">Bouchon de vidange</option>
+                <option value="Moteur : Joint de bouchon de vidange">Joint de bouchon de vidange</option>
+                <option value="Moteur : Carter d'huile">Carter d'huile</option>
+                <option value="Moteur : Joint de carter d'huile">Joint de carter d'huile</option>
+                <option value="Moteur : Pompe à huile">Pompe à huile</option>
+                <option value="Moteur : Capteur pression huile">Capteur pression huile (Manocontact)</option>
+                <option value="Moteur : Jauge à huile">Jauge à huile</option>
+                <option value="Moteur : Support moteur">Support moteur (Silentbloc)</option>
+                <option value="Moteur : Courroie d'alternateur">Courroie d'alternateur</option>
+                <option value="Moteur : Courroie de climatiseur">Courroie de climatiseur</option>
+                <option value="Moteur : Tendeur de courroie">Tendeur de courroie</option>
+                <option value="Moteur : Kit de distribution">Kit de distribution (Chaîne/Courroie)</option>
+                <option value="Moteur : Joint de culasse">Joint de culasse</option>
+                <option value="Moteur : Joint cache culbuteur">Joint cache culbuteur</option>
+                <option value="Moteur : Pompe à essence">Pompe à essence</option>
+                <option value="Moteur : Injecteur">Injecteur</option>
+            </optgroup>
+            <optgroup label="Pièces : Outillage de bord">
+                <option value="Outillage : Clé de jante / Croix">Clé de jante / Croix</option>
+                <option value="Outillage : Cric">Cric de levage</option>
+                <option value="Outillage : Anneau de remorquage">Anneau de remorquage</option>
+                <option value="Outillage : Roue de secours">Roue de secours</option>
+                <option value="Outillage : Triangle de panne">Triangle de panne (Signalisation)</option>
+                <option value="Outillage : Gilet de sécurité">Gilet de sécurité (Jaune)</option>
+                <option value="Outillage : Trousse de secours">Trousse de premiers secours</option>
+                <option value="Outillage : Extincteur">Extincteur</option>
+                <option value="Outillage : Lampe torche">Lampe torche</option>
+            </optgroup>
+            <optgroup label="Pièces : Consommables & Entretien">
+                <option value="Consommable : Graisse universelle">Graisse universelle</option>
+                <option value="Consommable : Graisse de cardan">Graisse de cardan</option>
+                <option value="Consommable : Dégrippant (WD-40)">Dégrippant (WD-40)</option>
+                <option value="Consommable : Nettoyant frein">Nettoyant frein</option>
+                <option value="Consommable : Nettoyant injecteur">Nettoyant injecteur</option>
+                <option value="Consommable : Additif essence">Additif essence (Octane booster)</option>
+                <option value="Consommable : Pâte à joint / Silicone">Pâte à joint / Silicone</option>
+                <option value="Consommable : Frein-filet (Loctite)">Frein-filet (Loctite)</option>
+                <option value="Consommable : Gaz Climatisation">Gaz Climatisation (Recharge)</option>
+            </optgroup>
+            <optgroup label="Pièces : Filtration & Allumage">
+                <option value="Filtration : Filtre à air">Filtre à air</option>
+                <option value="Filtration : Filtre à carburant">Filtre à carburant</option>
+                <option value="Filtration : Filtre habitacle">Filtre habitacle (Climatisation)</option>
+                <option value="Allumage : Bougies d'allumage">Bougies d'allumage</option>
+                <option value="Allumage : Bobine d'allumage">Bobine d'allumage</option>
+                <option value="Allumage : Faisceau d'allumage">Faisceau d'allumage</option>
+            </optgroup>
+            <optgroup label="Pièces : Freinage">
+                <option value="Freinage : Plaquettes de frein">Plaquettes de frein avant</option>
+                <option value="Freinage : Disques de frein">Disques de frein avant</option>
+                <option value="Freinage : Mâchoires de frein">Mâchoires de frein arrière</option>
+                <option value="Freinage : Tambours de frein">Tambours de frein arrière</option>
+                <option value="Freinage : Cylindre de roue">Cylindre de roue arrière</option>
+                <option value="Freinage : Liquide de frein (DOT)">Liquide de frein (DOT 3 / 4)</option>
+                <option value="Freinage : Maître-cylindre de frein">Maître-cylindre de frein</option>
+                <option value="Freinage : Servofrein (Mastervac)">Servofrein (Mastervac)</option>
+                <option value="Freinage : Câble de frein à main">Câble de frein à main</option>
+                <option value="Freinage : Contacteur de stop">Contacteur de feu stop</option>
+            </optgroup>
+            <optgroup label="Pièces : Suspension, Train avant & Direction">
+                <option value="Suspension : Amortisseurs avant">Amortisseurs avant</option>
+                <option value="Suspension : Amortisseurs arrière">Amortisseurs arrière</option>
+                <option value="Suspension : Coupelle d'amortisseur">Coupelle d'amortisseur / Butée</option>
+                <option value="Suspension : Triangle de suspension">Triangle de suspension</option>
+                <option value="Suspension : Silentbloc de triangle">Silentbloc de triangle</option>
+                <option value="Direction : Rotule de direction">Rotule de direction</option>
+                <option value="Suspension : Rotule de suspension">Rotule de suspension / Bras inférieur</option>
+                <option value="Direction : Biellette de direction">Biellette de direction (Axiale)</option>
+                <option value="Direction : Crémaillère de direction">Crémaillère de direction</option>
+                <option value="Transmission : Cardan complet">Cardan complet (Arbre de transmission)</option>
+                <option value="Transmission : Tête de cardan">Tête de cardan</option>
+                <option value="Transmission : Soufflet de cardan">Soufflet de cardan</option>
+                <option value="Suspension : Roulement de roue">Roulement de roue</option>
+                <option value="Suspension : Moyeu de roue">Moyeu de roue</option>
+                <option value="Roues : Pneu neuf">Pneu neuf</option>
+                <option value="Roues : Pneu occasion / France Aurevoir">Pneu occasion (France Aurevoir)</option>
+                <option value="Roues : Jante en tôle / Alu">Jante en tôle / Alu</option>
+            </optgroup>
+            <optgroup label="Pièces : Refroidissement">
+                <option value="Refroidissement : Radiateur d'eau">Radiateur d'eau</option>
+                <option value="Refroidissement : Bouchon de radiateur">Bouchon de radiateur</option>
+                <option value="Refroidissement : Liquide de refroidissement">Liquide de refroidissement</option>
+                <option value="Refroidissement : Pompe à eau">Pompe à eau</option>
+                <option value="Refroidissement : Ventilateur / Moteur ventilateur">Moteur de ventilateur / Hélice</option>
+                <option value="Refroidissement : Thermostat / Calorstat">Thermostat / Calorstat</option>
+                <option value="Refroidissement : Sonde de température">Sonde de température</option>
+                <option value="Refroidissement : Durite de radiateur">Durite de radiateur</option>
+                <option value="Refroidissement : Vase d'expansion">Vase d'expansion (Bocal)</option>
+            </optgroup>
+            <optgroup label="Pièces : Électricité, Éclairage & Habitacle">
+                <option value="Électricité : Batterie">Batterie</option>
+                <option value="Électricité : Cosses de batterie">Cosses de batterie</option>
+                <option value="Électricité : Alternateur">Alternateur</option>
+                <option value="Électricité : Démarreur">Démarreur</option>
+                <option value="Éclairage : Phare avant">Optique de phare avant</option>
+                <option value="Éclairage : Feu arrière">Feu arrière</option>
+                <option value="Éclairage : Ampoules (Phare/Clignotant)">Ampoules (Phare/Clignotant/Stop)</option>
+                <option value="Électricité : Fusibles / Relais">Fusibles / Relais</option>
+                <option value="Électricité : Klaxon">Klaxon</option>
+                <option value="Habitacle : Lève-vitre">Lève-vitre (Moteur ou Mécanisme)</option>
+                <option value="Habitacle : Bouton de lève-vitre">Bouton de lève-vitre</option>
+            </optgroup>
+            <optgroup label="Pièces : Transmission & Carrosserie">
+                <option value="Transmission : Kit d'embrayage">Kit d'embrayage (Disque + Plateau + Butée)</option>
+                <option value="Transmission : Huile de boîte de vitesse">Huile de boîte de vitesse</option>
+                <option value="Transmission : Câble d'embrayage">Câble d'embrayage</option>
+                <option value="Moteur : Câble d'accélérateur">Câble d'accélérateur</option>
+                <option value="Carrosserie : Balais d'essuie-glace">Balais d'essuie-glace</option>
+                <option value="Carrosserie : Moteur essuie-glace">Moteur d'essuie-glace</option>
+                <option value="Carrosserie : Pare-brise">Pare-brise</option>
+                <option value="Carrosserie : Rétroviseur">Rétroviseur</option>
+                <option value="Carrosserie : Pare-chocs">Pare-chocs</option>
+                <option value="Carrosserie : Poignée de porte">Poignée de porte</option>
+            </optgroup>
+        `;
+
         let fbUser = null;
         let users = [];
         let vehicles = [];
@@ -664,6 +824,7 @@
         let expenses = []; 
         let parts = []; 
         let staff = [];
+        let catalogs = []; // Nouveau pour les estimations de prix
         
         let loggedInUser = null;
         let currentOwnerFilter = 'all'; 
@@ -673,6 +834,51 @@
         let chartFleet = null;
         let chartTopVehicles = null;
         let chartExpenses = null;
+
+        // ==========================================
+        // SYSTÈME DE CONNEXION / INSCRIPTION
+        // ==========================================
+        let isLoginMode = true;
+
+        window.toggleSignup = () => {
+            isLoginMode = !isLoginMode;
+            document.getElementById('loginBtnText').textContent = isLoginMode ? 'Se connecter' : 'Créer le compte';
+            document.getElementById('toggleAuthBtn').textContent = isLoginMode ? 'Première connexion ? Créer mon compte Admin' : "J'ai déjà un compte, me connecter";
+            document.getElementById('loginError').classList.add('hidden');
+        };
+
+        window.handleLogin = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const pass = document.getElementById('loginPass').value.trim();
+            const errorDiv = document.getElementById('loginError');
+            const btnText = document.getElementById('loginBtnText');
+
+            errorDiv.classList.add('hidden');
+            btnText.innerHTML = '<div class="loader border-black border-t-transparent"></div>';
+
+            try {
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, pass);
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, pass);
+                }
+            } catch (error) {
+                console.error("Auth Error:", error);
+                btnText.textContent = isLoginMode ? 'Se connecter' : 'Créer le compte';
+                
+                if(error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+                    errorDiv.textContent = "Email ou mot de passe incorrect.";
+                } else if (error.code === 'auth/email-already-in-use') {
+                    errorDiv.textContent = "Ce compte existe déjà. Veuillez vous connecter.";
+                } else if (error.code === 'auth/weak-password') {
+                    errorDiv.textContent = "Le mot de passe doit faire au moins 6 caractères.";
+                } else {
+                    errorDiv.textContent = "Erreur : " + error.message;
+                }
+                errorDiv.classList.remove('hidden');
+            }
+        };
 
         window.customAlert = (message, isError = false) => {
             const overlay = document.createElement('div');
@@ -704,26 +910,6 @@
             document.getElementById('btnConfirm').onclick = () => { document.body.removeChild(overlay); callback(); };
         };
 
-        window.handleLogin = async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value.trim();
-            const pass = document.getElementById('loginPass').value.trim();
-            const errorDiv = document.getElementById('loginError');
-            const btnText = document.getElementById('loginBtnText');
-
-            errorDiv.classList.add('hidden');
-            btnText.innerHTML = '<div class="loader border-black border-t-transparent"></div>';
-
-            try {
-                await signInWithEmailAndPassword(auth, email, pass);
-            } catch (error) {
-                console.error("Auth Error:", error);
-                btnText.textContent = 'Se connecter';
-                errorDiv.textContent = "Email ou mot de passe incorrect.";
-                errorDiv.classList.remove('hidden');
-            }
-        };
-
         window.logout = async () => {
             await signOut(auth);
             loggedInUser = null;
@@ -741,7 +927,7 @@
             onSnapshot(getColRef('users'), async (snapshot) => {
                 users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
-                loggedInUser = users.find(u => u.id === fbUser.uid || (u.email && u.email === fbUser.email));
+                loggedInUser = users.find(u => u && (u.id === fbUser.uid || (u.email && u.email === fbUser.email)));
                 
                 if (!loggedInUser && fbUser.email.toLowerCase().includes('admin')) {
                     const newAdmin = { email: fbUser.email, role: 'admin', name: 'Administrateur Principal' };
@@ -767,6 +953,7 @@
             onSnapshot(getColRef('expenses'), (snapshot) => { expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) { updateUI(); updateCharts(); } }, console.error);
             onSnapshot(getColRef('parts'), (snapshot) => { parts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) updateUI(); }, console.error); 
             onSnapshot(getColRef('staff'), (snapshot) => { staff = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) updateUI(); }, console.error); 
+            onSnapshot(getColRef('catalogs'), (snapshot) => { catalogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) updateUI(); }, console.error); 
         }
 
         // Enregistrement du moteur d'application (Service Worker)
@@ -818,7 +1005,7 @@
         }
 
         window.changeOwnerFilter = (ownerId) => {
-            if(loggedInUser.role !== 'admin') return;
+            if(loggedInUser && loggedInUser.role !== 'admin') return;
             currentOwnerFilter = ownerId;
             updateTitle(); updateUI(); updateCharts();
         };
@@ -831,7 +1018,7 @@
 
         window.showSection = (section) => {
             document.querySelectorAll('#contentArea > div[id]').forEach(div => {
-                if (['dashboard', 'vehicles', 'drivers', 'personnel', 'documents', 'finance', 'parts', 'reports', 'admin'].includes(div.id)) {
+                if (['dashboard', 'vehicles', 'drivers', 'personnel', 'documents', 'finance', 'parts', 'reports', 'admin', 'catalog'].includes(div.id)) {
                     div.classList.add('hidden');
                 }
             });
@@ -840,8 +1027,13 @@
                 btn.classList.remove('bg-yango-yellow/10', 'text-yango-yellow', 'border-yango-yellow/20');
                 btn.classList.add('text-gray-300');
             });
-            event.currentTarget.classList.add('bg-yango-yellow/10', 'text-yango-yellow', 'border-yango-yellow/20');
-            event.currentTarget.classList.remove('text-gray-300');
+            
+            const activeBtn = document.querySelector(`button[onclick*="showSection('${section}')"]`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-yango-yellow/10', 'text-yango-yellow', 'border-yango-yellow/20');
+                activeBtn.classList.remove('text-gray-300');
+            }
+            
             if(section === 'dashboard') updateCharts();
         };
 
@@ -989,16 +1181,42 @@
 
 
         // ==========================================
-        // 5. GESTION DES MODALES
+        // 5. GESTION DES MODALES & IMAGES
         // ==========================================
+        
+        // Fonction pour compresser les images avant envoi
+        window.compressImage = (file) => {
+            return new Promise((resolve) => {
+                if (!file) return resolve(null);
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800; const MAX_HEIGHT = 800;
+                        let width = img.width; let height = img.height;
+                        if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
+                        else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
+                        canvas.width = width; canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.6)); 
+                    };
+                };
+            });
+        };
+
         window.openModal = (type, dataId = null) => {
+            if(!loggedInUser) return;
             const modal = document.getElementById('modal');
             const title = document.getElementById('modalTitle');
             const content = document.getElementById('modalContent');
             
             let ownerSelectHtml = '';
-            if(loggedInUser.role === 'admin') {
-                const opts = users.filter(u => u.role !== 'admin').map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+            if(loggedInUser && loggedInUser.role === 'admin') {
+                const opts = users.filter(u => u && u.role !== 'admin').map(o => `<option value="${o.id}">${o.name}</option>`).join('');
                 ownerSelectHtml = `<label class="text-xs text-gray-400">Propriétaire assigné</label><select id="formOwnerId" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white mb-3"><option value="">-- Choisir --</option>${opts}</select>`;
             }
 
@@ -1064,20 +1282,22 @@
                         <div><label class="text-xs text-gray-400">Date</label><input type="date" id="expDate" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
                         
                         <div>
-                            <label class="text-xs text-gray-400">Catégorie</label>
+                            <label class="text-xs text-gray-400">Catégorie de la dépense</label>
                             <select id="expType" required class="w-full px-3 py-2 bg-blue-900 border border-blue-600 rounded-lg text-sm text-white">
-                                <option value="Carburant">Carburant</option>
-                                <option value="Entretien / Vidange">Entretien / Vidange</option>
-                                <option value="Pièces de rechange">Pièces de rechange</option>
-                                <option value="Assurance / Visite">Assurance / Visite</option>
-                                <option value="Amende / Police" class="text-red-300 font-bold">Amende / Infraction (Lier chauffeur en bas)</option>
-                                <option value="Salaire / RH" class="text-purple-300 font-bold">Paiement Salaire / RH (Lier chauffeur en bas)</option>
-                                <option value="Autre">Autre</option>
+                                <optgroup label="Dépenses Générales">
+                                    <option value="Carburant">Carburant</option>
+                                    <option value="Entretien / Vidange">Entretien / Vidange générale</option>
+                                    <option value="Assurance / Visite">Assurance / Visite</option>
+                                    <option value="Amende / Police" class="text-red-300 font-bold">Amende / Infraction (Lier chauffeur en bas)</option>
+                                    <option value="Salaire / RH" class="text-purple-300 font-bold">Paiement Salaire / RH (Lier chauffeur en bas)</option>
+                                    <option value="Autre">Autre dépense</option>
+                                </optgroup>
+                                ${partCategoriesHtml}
                             </select>
                         </div>
                         
                         <div><label class="text-xs text-gray-400">Montant (FCFA)</label><input type="number" id="expAmount" required placeholder="Ex: 25000" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-red-400 font-bold"></div>
-                        <div><label class="text-xs text-gray-400">Description / Note</label><input type="text" id="expDesc" placeholder="Détails" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <div><label class="text-xs text-gray-400">Description / Note</label><input type="text" id="expDesc" placeholder="Détails supplémentaires" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
                         
                         <div class="border-t border-gray-700 pt-3 mt-2 space-y-3">
                             <p class="text-xs text-gray-400 font-bold uppercase">Liaisons et Suivi (Optionnel)</p>
@@ -1102,6 +1322,28 @@
                         </div>
 
                         <button type="submit" class="w-full py-3 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 mt-4">Enregistrer Dépense</button>
+                    </form>
+                `;
+            } else if (type === 'addCatalog') {
+                title.innerHTML = '<i class="fas fa-tags text-blue-400 mr-2"></i> Ajouter une estimation de prix';
+                content.innerHTML = `
+                    <form onsubmit="saveCatalog(event)" class="space-y-4">
+                        <div>
+                            <label class="text-xs text-gray-400">Modèle de Véhicule</label>
+                            <input type="text" id="cModel" placeholder="Ex: Suzuki Alto, Celerio, Toyota Yaris, Universel..." required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400">Pièce de référence</label>
+                            <select id="cPart" required class="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white">
+                                <option value="">Sélectionner la pièce...</option>
+                                ${partCategoriesHtml}
+                            </select>
+                        </div>
+                        <div class="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg mt-2">
+                            <label class="text-xs text-blue-400 font-bold">Prix Estimé / Standard (FCFA)</label>
+                            <input type="number" id="cPrice" required placeholder="Ex: 15000" class="w-full px-3 py-2 mt-1 bg-gray-900 border border-gray-600 rounded-lg text-sm text-blue-400 font-bold">
+                        </div>
+                        <button type="submit" class="w-full py-3 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 mt-4">Enregistrer l'estimation</button>
                     </form>
                 `;
             } else if (type === 'addVehicle') {
@@ -1167,6 +1409,16 @@
                             <div><label class="text-xs text-gray-400">N° Pièce d'identité</label><input type="text" id="dIdCard" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
                             <div><label class="text-xs text-gray-400">N° Permis</label><input type="text" id="dLicense" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
                         </div>
+                        
+                        <div class="border-t border-gray-700 pt-3 mt-2">
+                            <p class="text-xs text-purple-400 font-bold mb-2 uppercase"><i class="fas fa-camera mr-1"></i> Pièces Jointes (Photos)</p>
+                            <div class="space-y-2">
+                                <div><label class="text-[10px] text-gray-400">Photo Chauffeur</label><input type="file" accept="image/*" id="dPhotoProfile" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-gray-700 file:text-white hover:file:bg-gray-600"></div>
+                                <div><label class="text-[10px] text-gray-400">Photo Permis de Conduire</label><input type="file" accept="image/*" id="dPhotoLicense" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-gray-700 file:text-white hover:file:bg-gray-600"></div>
+                                <div><label class="text-[10px] text-gray-400">Photo Pièce d'identité</label><input type="file" accept="image/*" id="dPhotoIdCard" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-gray-700 file:text-white hover:file:bg-gray-600"></div>
+                            </div>
+                        </div>
+
                         <div class="border-t border-gray-700 pt-3 mt-2">
                             <p class="text-xs text-yango-yellow font-bold mb-2 uppercase">Échéances Santé (Optionnel)</p>
                             <div><label class="text-xs text-gray-400">Expiration Visite Médicale</label><input type="date" id="dMed" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
@@ -1297,8 +1549,38 @@
                             <div><label class="text-xs text-gray-400">N° Pièce d'identité</label><input type="text" id="editDIdCard" value="${driver.idCard}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
                             <div><label class="text-xs text-gray-400">N° Permis</label><input type="text" id="editDLicense" value="${driver.license}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
                         </div>
-                        <button type="submit" class="w-full py-2 bg-yango-yellow text-black rounded-lg font-medium hover:bg-yellow-400">Mettre à jour</button>
+
+                        <!-- Modification des pièces jointes -->
+                        <div class="border-t border-gray-700 pt-3 mt-2">
+                            <p class="text-xs text-purple-400 font-bold mb-2 uppercase"><i class="fas fa-camera mr-1"></i> Pièces Jointes (Laissez vide pour conserver l'actuelle)</p>
+                            <div class="space-y-2">
+                                <div><label class="text-[10px] text-gray-400">Nouvelle Photo Chauffeur</label><input type="file" accept="image/*" id="editDPhotoProfile" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-gray-700 file:text-white hover:file:bg-gray-600"></div>
+                                <div><label class="text-[10px] text-gray-400">Nouveau Permis de Conduire</label><input type="file" accept="image/*" id="editDPhotoLicense" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-gray-700 file:text-white hover:file:bg-gray-600"></div>
+                                <div><label class="text-[10px] text-gray-400">Nouvelle Pièce d'identité</label><input type="file" accept="image/*" id="editDPhotoIdCard" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-gray-700 file:text-white hover:file:bg-gray-600"></div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full py-2 bg-yango-yellow text-black rounded-lg font-medium hover:bg-yellow-400 mt-3">Mettre à jour</button>
                     </form>
+                `;
+            } else if (type === 'viewDriverDocs') {
+                const driver = drivers.find(d => d.id === dataId);
+                title.innerHTML = `<i class="fas fa-folder-open text-purple-400 mr-2"></i> Documents : ${driver.firstName} ${driver.lastName}`;
+                content.innerHTML = `
+                    <div class="space-y-6">
+                        <div>
+                            <h4 class="text-xs text-gray-400 uppercase font-bold mb-2 border-b border-gray-700 pb-1">Photo de profil</h4>
+                            ${driver.photoProfile ? `<img src="${driver.photoProfile}" class="max-h-48 rounded-lg object-contain border border-gray-700">` : `<p class="text-sm text-gray-500 italic">Non fournie</p>`}
+                        </div>
+                        <div>
+                            <h4 class="text-xs text-gray-400 uppercase font-bold mb-2 border-b border-gray-700 pb-1">Permis de conduire (${driver.license || 'N/A'})</h4>
+                            ${driver.photoLicense ? `<img src="${driver.photoLicense}" class="max-h-48 rounded-lg object-contain border border-gray-700">` : `<p class="text-sm text-gray-500 italic">Non fourni</p>`}
+                        </div>
+                        <div>
+                            <h4 class="text-xs text-gray-400 uppercase font-bold mb-2 border-b border-gray-700 pb-1">Pièce d'identité (${driver.idCard || 'N/A'})</h4>
+                            ${driver.photoIdCard ? `<img src="${driver.photoIdCard}" class="max-h-48 rounded-lg object-contain border border-gray-700">` : `<p class="text-sm text-gray-500 italic">Non fournie</p>`}
+                        </div>
+                    </div>
                 `;
             } else if (type === 'editStaff') {
                 const s = staff.find(x => x.id === dataId);
@@ -1353,11 +1635,11 @@
         // ==========================================
         // 6. SAUVEGARDES FIREBASE
         // ==========================================
-        function resolveOwnerId() { return loggedInUser.role === 'admin' ? document.getElementById('formOwnerId').value : loggedInUser.id; }
+        function resolveOwnerId() { return (loggedInUser && loggedInUser.role === 'admin') ? document.getElementById('formOwnerId').value : loggedInUser.id; }
 
         window.saveOwnerSecure = async (e) => {
             e.preventDefault();
-            if(!fbUser || loggedInUser.role !== 'admin') return;
+            if(!fbUser || !loggedInUser || loggedInUser.role !== 'admin') return;
             
             const btn = document.getElementById('btnCreateOwner');
             btn.innerHTML = '<div class="loader"></div>';
@@ -1395,7 +1677,7 @@
         };
 
         window.saveVehicle = async (e) => {
-            e.preventDefault(); if(!fbUser) return; const ownerId = resolveOwnerId(); if(!ownerId) return customAlert("Propriétaire non défini.", true);
+            e.preventDefault(); if(!fbUser || !loggedInUser) return; const ownerId = resolveOwnerId(); if(!ownerId) return customAlert("Propriétaire non défini.", true);
             const data = {
                 ownerId: ownerId, brand: document.getElementById('vBrand').value, plate: document.getElementById('vPlate').value, status: document.getElementById('vStatus').value,
                 assignedDriverId: document.getElementById('vAssign').value || null, 
@@ -1410,7 +1692,7 @@
         };
 
         window.updateVehicle = async (e, id) => {
-            e.preventDefault(); if(!fbUser) return;
+            e.preventDefault(); if(!fbUser || !loggedInUser) return;
             const data = { 
                 brand: document.getElementById('editVBrand').value, 
                 plate: document.getElementById('editVPlate').value, 
@@ -1423,7 +1705,7 @@
         };
 
         window.updateDocuments = async (e, id) => {
-            e.preventDefault(); if(!fbUser) return;
+            e.preventDefault(); if(!fbUser || !loggedInUser) return;
             const data = { 
                 insuranceExpiry: document.getElementById('editIns').value || null, 
                 techVisitExpiry: document.getElementById('editTech').value || null, 
@@ -1440,26 +1722,56 @@
         };
 
         window.saveDriver = async (e) => {
-            e.preventDefault(); if(!fbUser) return; const ownerId = resolveOwnerId(); if(!ownerId) return customAlert("Propriétaire non défini.", true);
+            e.preventDefault(); if(!fbUser || !loggedInUser) return; const ownerId = resolveOwnerId(); if(!ownerId) return customAlert("Propriétaire non défini.", true);
+            
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<div class="loader"></div> Traitement des images...';
+            btn.disabled = true;
+
+            const photoProfile = await compressImage(document.getElementById('dPhotoProfile').files[0]);
+            const photoLicense = await compressImage(document.getElementById('dPhotoLicense').files[0]);
+            const photoIdCard = await compressImage(document.getElementById('dPhotoIdCard').files[0]);
+
             const data = {
                 ownerId: ownerId, lastName: document.getElementById('dLastName').value, firstName: document.getElementById('dFirstName').value,
                 address: document.getElementById('dAddress').value, phone: document.getElementById('dPhone').value,
                 dailyExpected: parseFloat(document.getElementById('dExpected').value) || null,
                 idCard: document.getElementById('dIdCard').value, license: document.getElementById('dLicense').value,
-                medicalVisitExpiry: document.getElementById('dMed').value || null, status: "actif", timestamp: new Date().getTime()
+                medicalVisitExpiry: document.getElementById('dMed').value || null, 
+                photoProfile: photoProfile, photoLicense: photoLicense, photoIdCard: photoIdCard,
+                status: "actif", timestamp: new Date().getTime()
             };
-            await addDoc(getColRef('drivers'), data); closeModal();
+            await addDoc(getColRef('drivers'), data); 
+            btn.innerHTML = originalText; btn.disabled = false;
+            closeModal();
         };
 
         window.updateDriver = async (e, id) => {
-            e.preventDefault(); if(!fbUser) return;
+            e.preventDefault(); if(!fbUser || !loggedInUser) return;
+            const driver = drivers.find(d => d.id === id);
+            
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<div class="loader"></div> Traitement des images...';
+            btn.disabled = true;
+
+            let photoProfile = driver.photoProfile; let photoLicense = driver.photoLicense; let photoIdCard = driver.photoIdCard;
+            
+            if(document.getElementById('editDPhotoProfile').files[0]) photoProfile = await compressImage(document.getElementById('editDPhotoProfile').files[0]);
+            if(document.getElementById('editDPhotoLicense').files[0]) photoLicense = await compressImage(document.getElementById('editDPhotoLicense').files[0]);
+            if(document.getElementById('editDPhotoIdCard').files[0]) photoIdCard = await compressImage(document.getElementById('editDPhotoIdCard').files[0]);
+
             const data = {
                 lastName: document.getElementById('editDLastName').value, firstName: document.getElementById('editDFirstName').value,
                 address: document.getElementById('editDAddress').value, phone: document.getElementById('editDPhone').value,
                 dailyExpected: parseFloat(document.getElementById('editDExpected').value) || null,
-                idCard: document.getElementById('editDIdCard').value, license: document.getElementById('editDLicense').value
+                idCard: document.getElementById('editDIdCard').value, license: document.getElementById('editDLicense').value,
+                photoProfile: photoProfile, photoLicense: photoLicense, photoIdCard: photoIdCard
             };
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drivers', id), data); closeModal();
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drivers', id), data); 
+            btn.innerHTML = originalText; btn.disabled = false;
+            closeModal();
         };
 
         window.deleteDriver = (id) => {
@@ -1467,13 +1779,13 @@
         };
 
         window.updateDriverDocs = async (e, id) => {
-            e.preventDefault(); if(!fbUser) return;
+            e.preventDefault(); if(!fbUser || !loggedInUser) return;
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drivers', id), { medicalVisitExpiry: document.getElementById('editMed').value || null });
             closeModal(); customAlert("Dossier médical mis à jour !");
         };
 
         window.saveStaff = async (e) => {
-            e.preventDefault(); if(!fbUser) return; const ownerId = resolveOwnerId(); if(!ownerId) return customAlert("Propriétaire non défini.", true);
+            e.preventDefault(); if(!fbUser || !loggedInUser) return; const ownerId = resolveOwnerId(); if(!ownerId) return customAlert("Propriétaire non défini.", true);
             const data = {
                 ownerId: ownerId, lastName: document.getElementById('sLastName').value, firstName: document.getElementById('sFirstName').value,
                 role: document.getElementById('sRole').value, phone: document.getElementById('sPhone').value,
@@ -1485,7 +1797,7 @@
         };
 
         window.updateStaff = async (e, id) => {
-            e.preventDefault(); if(!fbUser) return;
+            e.preventDefault(); if(!fbUser || !loggedInUser) return;
             const data = {
                 role: document.getElementById('editSRole').value, phone: document.getElementById('editSPhone').value,
                 salary: parseFloat(document.getElementById('editSSalary').value) || 0,
@@ -1500,7 +1812,7 @@
         };
 
         window.saveRevenue = async (e) => {
-            e.preventDefault(); if(!fbUser) return;
+            e.preventDefault(); if(!fbUser || !loggedInUser) return;
             const plate = document.getElementById('revVehicle').value; 
             
             let ownerId = null;
@@ -1526,7 +1838,7 @@
         };
 
         window.saveExpense = async (e) => {
-            e.preventDefault(); if(!fbUser) return;
+            e.preventDefault(); if(!fbUser || !loggedInUser) return;
             const plate = document.getElementById('expVehicle').value;
             let ownerId = null;
             if(plate) { const veh = vehicles.find(v => v.plate === plate); if(veh) ownerId = veh.ownerId; }
@@ -1571,7 +1883,7 @@
         };
 
         window.savePart = async (e) => {
-            e.preventDefault(); if(!fbUser) return;
+            e.preventDefault(); if(!fbUser || !loggedInUser) return;
             let ownerId = (loggedInUser.role === 'admin') ? currentOwnerFilter : loggedInUser.id;
             if(ownerId === 'all') ownerId = loggedInUser.id; 
             const price = parseFloat(document.getElementById('pPrice').value);
@@ -1605,6 +1917,34 @@
             }
         };
 
+        // ENREGISTREMENT ESTIMATION PRIX (CATALOGUE)
+        window.saveCatalog = async (e) => {
+            e.preventDefault(); if(!fbUser || !loggedInUser) return;
+            let ownerId = (loggedInUser.role === 'admin') ? currentOwnerFilter : loggedInUser.id;
+            if(ownerId === 'all') ownerId = loggedInUser.id; 
+            const data = {
+                ownerId: ownerId,
+                model: document.getElementById('cModel').value,
+                part: document.getElementById('cPart').value,
+                price: parseFloat(document.getElementById('cPrice').value),
+                timestamp: new Date().getTime()
+            };
+            await addDoc(getColRef('catalogs'), data); closeModal();
+        };
+
+        window.deleteCatalog = (id) => {
+            if(!fbUser) return; customConfirm("Supprimer cette estimation de prix ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'catalogs', id)); });
+        };
+
+        window.filterCatalog = () => {
+            const term = document.getElementById('searchCatalog').value.toLowerCase();
+            const rows = document.getElementById('catalogTable').getElementsByTagName('tr');
+            for(let i=0; i<rows.length; i++) {
+                const text = rows[i].textContent || rows[i].innerText;
+                rows[i].style.display = text.toLowerCase().indexOf(term) > -1 ? "" : "none";
+            }
+        };
+
         // ==========================================
         // 7. GESTION DES DATES & ALERTES DOCUMENTS
         // ==========================================
@@ -1620,20 +1960,22 @@
         // ==========================================
         // 8. MISE À JOUR DE L'INTERFACE
         // ==========================================
-        function getOwnerName(id) { const u = users.find(u => u.id === id); return u ? u.name : 'Inconnu'; }
+        function getOwnerName(id) { const u = users.find(u => u && u.id === id); return u ? u.name : 'Inconnu'; }
         
         function updateAdminDropdown() {
             const select = document.getElementById('ownerFilter'); const currentVal = select.value;
-            select.innerHTML = `<option value="all">🌐 Tous les parcs</option>` + users.filter(u => u.role !== 'admin').map(o => `<option value="${o.id}">🏢 ${o.name}</option>`).join('');
-            if(users.find(u => u.id === currentVal)) select.value = currentVal;
+            select.innerHTML = `<option value="all">🌐 Tous les parcs</option>` + users.filter(u => u && u.role !== 'admin').map(o => `<option value="${o.id}">🏢 ${o.name}</option>`).join('');
+            if(users.find(u => u && u.id === currentVal)) select.value = currentVal;
         }
 
         function updateUI() {
+            if(!loggedInUser) return;
             const fVehicles = currentOwnerFilter === 'all' ? vehicles : vehicles.filter(v => v.ownerId === currentOwnerFilter);
             const fDrivers = currentOwnerFilter === 'all' ? drivers : drivers.filter(d => d.ownerId === currentOwnerFilter);
             const fStaff = currentOwnerFilter === 'all' ? staff : staff.filter(s => s.ownerId === currentOwnerFilter);
             const fRevs = currentOwnerFilter === 'all' ? revenues : revenues.filter(r => r.ownerId === currentOwnerFilter);
             const fExps = currentOwnerFilter === 'all' ? expenses : expenses.filter(e => e.ownerId === currentOwnerFilter);
+            const fCatalogs = currentOwnerFilter === 'all' ? catalogs : catalogs.filter(c => c.ownerId === currentOwnerFilter);
 
             // DASHBOARD STATS
             document.getElementById('statVehicles').textContent = fVehicles.length;
@@ -1757,7 +2099,15 @@
 
                 return `
                 <tr class="hover:bg-white/5 border-b border-gray-700/50">
-                    <td class="px-6 py-4"><div class="font-bold text-white">${d.lastName} ${d.firstName}</div><div class="text-[10px] text-gray-500 uppercase mt-1">${getOwnerName(d.ownerId)}</div></td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <img src="${d.photoProfile || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="w-10 h-10 rounded-full object-cover border border-gray-600 bg-gray-800">
+                            <div>
+                                <div class="font-bold text-white">${d.lastName} ${d.firstName}</div>
+                                <div class="text-[10px] text-gray-500 uppercase mt-1">${getOwnerName(d.ownerId)}</div>
+                            </div>
+                        </div>
+                    </td>
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-2">
                             <span class="text-sm text-gray-300">${d.phone}</span>
@@ -1766,12 +2116,13 @@
                     </td>
                     <td class="px-6 py-4 text-yango-yellow font-medium">${d.dailyExpected ? d.dailyExpected.toLocaleString() + ' F' : 'Non défini'}</td>
                     <td class="px-6 py-4 text-center">${scoreHtml}</td>
-                    <td class="px-6 py-4 text-right">
+                    <td class="px-6 py-4 text-right whitespace-nowrap">
+                        <button onclick="openModal('viewDriverDocs', '${d.id}')" class="text-purple-400 hover:text-purple-300 mr-3" title="Voir les documents et photos"><i class="fas fa-folder-open"></i></button>
                         <button onclick="openModal('editDriver', '${d.id}')" class="text-blue-400 hover:text-blue-300 mr-3"><i class="fas fa-edit"></i></button>
                         <button onclick="deleteDriver('${d.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;
-            }).join('');
+            }).join('') || `<tr><td colspan="5" class="text-center py-6 text-gray-500">Aucun chauffeur enregistré.</td></tr>`;
 
             // TABLE PERSONNEL (STAFF)
             document.getElementById('staffTable').innerHTML = fStaff.sort((a, b) => b.timestamp - a.timestamp).map(s => {
@@ -1865,6 +2216,17 @@
                 </tr>
             `).join('') || `<tr><td colspan="8" class="text-center py-6 text-gray-500">Aucune pièce enregistrée.</td></tr>`;
 
+            // TABLE CATALOGUE (ESTIMATIONS)
+            document.getElementById('catalogTable').innerHTML = fCatalogs.sort((a,b) => b.timestamp - a.timestamp).map(c => `
+                <tr class="hover:bg-white/5 border-b border-gray-700/50">
+                    <td class="px-6 py-4"><span class="px-3 py-1 bg-gray-700 text-white rounded-full text-xs font-bold uppercase">${c.model}</span></td>
+                    <td class="px-6 py-4 text-xs text-gray-400">${c.part.split(' : ')[0] || '-'}</td>
+                    <td class="px-6 py-4 font-bold text-white">${c.part.split(' : ')[1] || c.part}</td>
+                    <td class="px-6 py-4 text-blue-400 font-bold text-lg">${c.price.toLocaleString()} F</td>
+                    <td class="px-6 py-4 text-right"><button onclick="deleteCatalog('${c.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button></td>
+                </tr>
+            `).join('') || `<tr><td colspan="5" class="text-center py-6 text-gray-500">Aucune estimation enregistrée. Cliquez sur Ajouter pour commencer.</td></tr>`;
+
             // =====================================
             // MODULE RAPPORTS & RH
             // =====================================
@@ -1913,6 +2275,7 @@
             // TABLE ADMIN SÉCURISÉE 
             if(loggedInUser && loggedInUser.role === 'admin') {
                 document.getElementById('ownersTable').innerHTML = users.map(u => {
+                    if (!u) return '';
                     const roleBadge = u.role === 'admin' ? `<span class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">Admin</span>` : `<span class="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded">Propriétaire</span>`;
                     const deleteBtn = u.id !== loggedInUser.id ? `<button onclick="deleteOwner('${u.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>` : `<span class="text-gray-600 text-xs italic">Vous</span>`;
                     const displayId = u.email || `<span class="text-gray-600 italic">Vieux compte (${u.username})</span>`;
@@ -1966,8 +2329,11 @@
 
             let expGrouped = {};
             fExps.forEach(e => { expGrouped[e.type] = (expGrouped[e.type] || 0) + e.amount; });
-            const expLabels = Object.keys(expGrouped); const expData = Object.values(expGrouped); const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#10b981'];
-            chartExpenses.data = { labels: expLabels.length ? expLabels : ['Aucune dépense'], datasets: [{ data: expData.length ? expData : [1], backgroundColor: expData.length ? colors.slice(0, expLabels.length) : ['#374151'], borderWidth: 0 }] };
+            const expLabels = Object.keys(expGrouped); const expData = Object.values(expGrouped); 
+            const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#14b8a6', '#f43f5e', '#6366f1', '#84cc16'];
+            const dynamicColors = expLabels.map((_, i) => colors[i % colors.length]);
+            
+            chartExpenses.data = { labels: expLabels.length ? expLabels : ['Aucune dépense'], datasets: [{ data: expData.length ? expData : [1], backgroundColor: expData.length ? dynamicColors : ['#374151'], borderWidth: 0 }] };
             chartExpenses.update();
         }
     </script>
