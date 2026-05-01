@@ -368,7 +368,7 @@
                     </div>
                 </div>
 
-                <!-- NOUVEAU MODULE : SUIVI IMMOBILISATIONS (GARAGE) -->
+                <!-- SUIVI IMMOBILISATIONS (GARAGE) -->
                 <div id="immobilizations" class="hidden space-y-6">
                     <div class="flex items-center justify-between">
                         <div>
@@ -444,7 +444,6 @@
                         </div>
                     </div>
 
-                    <!-- NOUVEAU : Suivi de Maintenance (Kilométrage) -->
                     <h3 class="text-xl font-bold text-orange-400 mt-8 mb-4"><i class="fas fa-tools mr-2"></i>Alertes de Maintenance (Kilométrage)</h3>
                     <div class="glass rounded-2xl overflow-hidden border border-gray-700/50">
                         <div class="overflow-x-auto">
@@ -466,7 +465,6 @@
                     </div>
 
                     <h3 class="text-xl font-bold text-white mt-8 mb-4"><i class="fas fa-car mr-2"></i>Documents Véhicules</h3>
-                    <!-- Tableau des Documents Véhicules (Vignette ajoutée) -->
                     <div class="glass rounded-2xl overflow-hidden border border-gray-700/50">
                         <div class="overflow-x-auto">
                             <table class="w-full text-left min-w-[1000px]">
@@ -490,7 +488,6 @@
                     </div>
 
                     <h3 class="text-xl font-bold text-white mt-8 mb-4"><i class="fas fa-user-tie mr-2"></i>Documents Chauffeurs</h3>
-                    <!-- Tableau des Documents Chauffeurs -->
                     <div class="glass rounded-2xl overflow-hidden border border-gray-700/50">
                         <div class="overflow-x-auto">
                             <table class="w-full text-left min-w-[600px]">
@@ -510,7 +507,7 @@
                     </div>
                 </div>
 
-                <!-- NOUVEAU MODULE : CRÉDITS & DETTES -->
+                <!-- CRÉDITS & DETTES -->
                 <div id="debts" class="hidden space-y-6">
                     <div class="flex items-center justify-between">
                         <div>
@@ -604,7 +601,7 @@
                                         <th class="px-4 py-3 text-gray-400 font-semibold">Type / Motif</th>
                                         <th class="px-4 py-3 text-gray-400 font-semibold">Véhicule</th>
                                         <th class="px-4 py-3 text-gray-400 font-semibold">Chauffeur/Agent</th>
-                                        <th class="px-4 py-3 text-gray-400 font-semibold hidden lg:table-cell">Détails</th>
+                                        <th class="px-4 py-3 text-gray-400 font-semibold hidden lg:table-cell">Détails (Paiement)</th>
                                         <th class="px-4 py-3 font-bold text-white text-right">Impact Net</th>
                                         <th class="px-4 py-3 text-gray-400 text-center no-print">Actions</th>
                                     </tr>
@@ -656,7 +653,7 @@
                     </div>
                 </div>
 
-                <!-- NOUVEAU MODULE : CATALOGUE & ESTIMATIONS -->
+                <!-- CATALOGUE & ESTIMATIONS -->
                 <div id="catalog" class="hidden space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
@@ -1949,6 +1946,27 @@
                         </button>
                     </form>
                 `;
+            } else if (type === 'editOwner') {
+                const owner = users.find(u => u.id === dataId);
+                title.innerHTML = '<i class="fas fa-user-edit text-purple-400 mr-2"></i> Modifier Propriétaire';
+                content.innerHTML = `
+                    <form onsubmit="updateOwnerSecure(event, '${owner.id}')" class="space-y-4">
+                        <div class="bg-blue-500/10 p-3 rounded text-xs text-blue-300 border border-blue-500/30 mb-2">
+                            <i class="fas fa-info-circle mr-1"></i> Vous pouvez modifier le nom. L'email est lié à l'authentification et ne peut pas être modifié ici.
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400">Nom complet du propriétaire</label>
+                            <input type="text" id="editOName" value="${owner.name}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400">Email de connexion (Lecture seule)</label>
+                            <input type="email" value="${owner.email}" disabled class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-gray-500 cursor-not-allowed">
+                        </div>
+                        <button type="submit" id="btnUpdateOwner" class="w-full py-3 bg-purple-500 text-white rounded-lg font-bold hover:bg-purple-600 flex justify-center items-center">
+                            <span>Mettre à jour</span>
+                        </button>
+                    </form>
+                `;
             }
             
             modal.classList.remove('hidden');
@@ -1983,6 +2001,25 @@
                 closeModal(); customAlert("Compte propriétaire sécurisé créé avec succès !");
             } catch (err) {
                 btn.innerHTML = 'Créer Compte Sécurisé'; btn.disabled = false; customAlert("Erreur : " + err.message, true);
+            }
+        };
+
+        window.updateOwnerSecure = async (e, id) => {
+            e.preventDefault();
+            if(!fbUser || !loggedInUser || loggedInUser.role !== 'admin') return;
+            const btn = document.getElementById('btnUpdateOwner'); 
+            btn.innerHTML = '<div class="loader"></div>'; 
+            btn.disabled = true;
+            const newName = document.getElementById('editOName').value.trim();
+            
+            try {
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', id), { name: newName });
+                closeModal(); 
+                customAlert("Les informations du propriétaire ont été mises à jour !");
+            } catch (err) {
+                btn.innerHTML = '<span>Mettre à jour</span>'; 
+                btn.disabled = false; 
+                customAlert("Erreur : " + err.message, true);
             }
         };
 
@@ -2709,9 +2746,10 @@
                 document.getElementById('ownersTable').innerHTML = users.map(u => {
                     if (!u) return '';
                     const roleBadge = u.role === 'admin' ? `<span class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">Admin</span>` : `<span class="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded">Propriétaire</span>`;
-                    const deleteBtn = u.id !== loggedInUser.id ? `<button onclick="deleteOwner('${u.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>` : `<span class="text-gray-600 text-xs italic">Vous</span>`;
+                    const editBtn = `<button onclick="openModal('editOwner', '${u.id}')" class="text-blue-400 hover:text-blue-300 mr-3" title="Modifier les infos"><i class="fas fa-edit"></i></button>`;
+                    const deleteBtn = u.id !== loggedInUser.id ? `<button onclick="deleteOwner('${u.id}')" class="text-red-400 hover:text-red-300" title="Supprimer le compte"><i class="fas fa-trash"></i></button>` : `<span class="text-gray-600 text-xs italic ml-1">Vous</span>`;
                     const displayId = u.email || `<span class="text-gray-600 italic">Vieux compte (${u.username})</span>`;
-                    return `<tr class="border-b border-gray-700/50"><td class="px-6 py-4 text-sm font-mono text-gray-400">${displayId}</td><td class="px-6 py-4 font-bold text-white">${u.name}</td><td class="px-6 py-4">${roleBadge}</td><td class="px-6 py-4 text-right">${deleteBtn}</td></tr>`;
+                    return `<tr class="border-b border-gray-700/50"><td class="px-6 py-4 text-sm font-mono text-gray-400">${displayId}</td><td class="px-6 py-4 font-bold text-white">${u.name}</td><td class="px-6 py-4">${roleBadge}</td><td class="px-6 py-4 text-right whitespace-nowrap">${editBtn}${deleteBtn}</td></tr>`;
                 }).join('');
             }
         }
