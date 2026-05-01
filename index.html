@@ -816,6 +816,9 @@
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // ==========================================
+        // 1. CONFIGURATION & INITIALISATION FIREBASE
+        // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyAKsqvTL0ZZ6PtNdXvSG1jbXbkhx3CsezU",
             authDomain: "yango-fleet.firebaseapp.com",
@@ -834,6 +837,18 @@
         const secondaryAuth = getAuth(secondaryApp);
         
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const getColRef = (colName) => collection(db, 'artifacts', appId, 'public', 'data', colName);
+
+        // ==========================================
+        // 2. VARIABLES GLOBALES & ÉTATS
+        // ==========================================
+        let fbUser = null;
+        let users = [], vehicles = [], drivers = [], revenues = [], expenses = [], parts = [], staff = [], catalogs = [], mechanics = [], immobilizations = [], debts = [];
+        let loggedInUser = null;
+        let currentOwnerFilter = 'all'; 
+        let currentLedgerTab = 'all'; 
+        let isLoginMode = true;
+        let chartFinance = null, chartFleet = null, chartTopVehicles = null, chartExpenses = null;
 
         const partCategoriesHtml = `
             <optgroup label="Pièces : Moteur & Lubrification">
@@ -844,187 +859,105 @@
                 <option value="Moteur : Bouchon de vidange">Bouchon de vidange</option>
                 <option value="Moteur : Joint de bouchon de vidange">Joint de bouchon de vidange</option>
                 <option value="Moteur : Carter d'huile">Carter d'huile</option>
-                <option value="Moteur : Joint de carter d'huile">Joint de carter d'huile</option>
                 <option value="Moteur : Pompe à huile">Pompe à huile</option>
-                <option value="Moteur : Capteur pression huile">Capteur pression huile (Manocontact)</option>
-                <option value="Moteur : Jauge à huile">Jauge à huile</option>
-                <option value="Moteur : Support moteur">Support moteur (Silentbloc)</option>
                 <option value="Moteur : Courroie d'alternateur">Courroie d'alternateur</option>
-                <option value="Moteur : Courroie de climatiseur">Courroie de climatiseur</option>
-                <option value="Moteur : Tendeur de courroie">Tendeur de courroie</option>
                 <option value="Moteur : Kit de distribution">Kit de distribution (Chaîne/Courroie)</option>
                 <option value="Moteur : Joint de culasse">Joint de culasse</option>
-                <option value="Moteur : Joint cache culbuteur">Joint cache culbuteur</option>
                 <option value="Moteur : Pompe à essence">Pompe à essence</option>
                 <option value="Moteur : Injecteur">Injecteur</option>
             </optgroup>
             <optgroup label="Pièces : Outillage de bord">
                 <option value="Outillage : Clé de jante / Croix">Clé de jante / Croix</option>
                 <option value="Outillage : Cric">Cric de levage</option>
-                <option value="Outillage : Anneau de remorquage">Anneau de remorquage</option>
                 <option value="Outillage : Roue de secours">Roue de secours</option>
-                <option value="Outillage : Triangle de panne">Triangle de panne (Signalisation)</option>
-                <option value="Outillage : Gilet de sécurité">Gilet de sécurité (Jaune)</option>
-                <option value="Outillage : Trousse de secours">Trousse de premiers secours</option>
+                <option value="Outillage : Triangle de panne">Triangle de panne</option>
                 <option value="Outillage : Extincteur">Extincteur</option>
-                <option value="Outillage : Lampe torche">Lampe torche</option>
             </optgroup>
             <optgroup label="Pièces : Consommables & Entretien">
                 <option value="Consommable : Graisse universelle">Graisse universelle</option>
-                <option value="Consommable : Graisse de cardan">Graisse de cardan</option>
                 <option value="Consommable : Dégrippant (WD-40)">Dégrippant (WD-40)</option>
                 <option value="Consommable : Nettoyant frein">Nettoyant frein</option>
-                <option value="Consommable : Nettoyant injecteur">Nettoyant injecteur</option>
-                <option value="Consommable : Additif essence">Additif essence (Octane booster)</option>
-                <option value="Consommable : Pâte à joint / Silicone">Pâte à joint / Silicone</option>
-                <option value="Consommable : Frein-filet (Loctite)">Frein-filet (Loctite)</option>
                 <option value="Consommable : Gaz Climatisation">Gaz Climatisation (Recharge)</option>
-            </optgroup>
-            <optgroup label="Pièces : Filtration & Allumage">
-                <option value="Filtration : Filtre à air">Filtre à air</option>
-                <option value="Filtration : Filtre à carburant">Filtre à carburant</option>
-                <option value="Filtration : Filtre habitacle">Filtre habitacle (Climatisation)</option>
-                <option value="Allumage : Bougies d'allumage">Bougies d'allumage</option>
-                <option value="Allumage : Bobine d'allumage">Bobine d'allumage</option>
-                <option value="Allumage : Faisceau d'allumage">Faisceau d'allumage</option>
             </optgroup>
             <optgroup label="Pièces : Freinage">
                 <option value="Freinage : Plaquettes de frein">Plaquettes de frein avant</option>
                 <option value="Freinage : Disques de frein">Disques de frein avant</option>
                 <option value="Freinage : Mâchoires de frein">Mâchoires de frein arrière</option>
                 <option value="Freinage : Tambours de frein">Tambours de frein arrière</option>
-                <option value="Freinage : Cylindre de roue">Cylindre de roue arrière</option>
                 <option value="Freinage : Liquide de frein (DOT)">Liquide de frein (DOT 3 / 4)</option>
-                <option value="Freinage : Maître-cylindre de frein">Maître-cylindre de frein</option>
-                <option value="Freinage : Servofrein (Mastervac)">Servofrein (Mastervac)</option>
-                <option value="Freinage : Câble de frein à main">Câble de frein à main</option>
-                <option value="Freinage : Contacteur de stop">Contacteur de feu stop</option>
             </optgroup>
             <optgroup label="Pièces : Suspension, Train avant & Direction">
                 <option value="Suspension : Amortisseurs avant">Amortisseurs avant</option>
                 <option value="Suspension : Amortisseurs arrière">Amortisseurs arrière</option>
-                <option value="Suspension : Coupelle d'amortisseur">Coupelle d'amortisseur / Butée</option>
-                <option value="Suspension : Triangle de suspension">Triangle de suspension</option>
-                <option value="Suspension : Silentbloc de triangle">Silentbloc de triangle</option>
                 <option value="Direction : Rotule de direction">Rotule de direction</option>
-                <option value="Suspension : Rotule de suspension">Rotule de suspension / Bras inférieur</option>
-                <option value="Direction : Biellette de direction">Biellette de direction (Axiale)</option>
-                <option value="Direction : Crémaillère de direction">Crémaillère de direction</option>
                 <option value="Transmission : Cardan complet">Cardan complet (Arbre de transmission)</option>
-                <option value="Transmission : Tête de cardan">Tête de cardan</option>
-                <option value="Transmission : Soufflet de cardan">Soufflet de cardan</option>
-                <option value="Suspension : Roulement de roue">Roulement de roue</option>
-                <option value="Suspension : Moyeu de roue">Moyeu de roue</option>
                 <option value="Roues : Pneu neuf">Pneu neuf</option>
                 <option value="Roues : Pneu occasion / France Aurevoir">Pneu occasion (France Aurevoir)</option>
-                <option value="Roues : Jante en tôle / Alu">Jante en tôle / Alu</option>
             </optgroup>
             <optgroup label="Pièces : Refroidissement">
                 <option value="Refroidissement : Radiateur d'eau">Radiateur d'eau</option>
-                <option value="Refroidissement : Bouchon de radiateur">Bouchon de radiateur</option>
                 <option value="Refroidissement : Liquide de refroidissement">Liquide de refroidissement</option>
                 <option value="Refroidissement : Pompe à eau">Pompe à eau</option>
-                <option value="Refroidissement : Ventilateur / Moteur ventilateur">Moteur de ventilateur / Hélice</option>
-                <option value="Refroidissement : Thermostat / Calorstat">Thermostat / Calorstat</option>
-                <option value="Refroidissement : Sonde de température">Sonde de température</option>
-                <option value="Refroidissement : Durite de radiateur">Durite de radiateur</option>
-                <option value="Refroidissement : Vase d'expansion">Vase d'expansion (Bocal)</option>
             </optgroup>
             <optgroup label="Pièces : Électricité, Éclairage & Habitacle">
                 <option value="Électricité : Batterie">Batterie</option>
-                <option value="Électricité : Cosses de batterie">Cosses de batterie</option>
                 <option value="Électricité : Alternateur">Alternateur</option>
                 <option value="Électricité : Démarreur">Démarreur</option>
                 <option value="Éclairage : Phare avant">Optique de phare avant</option>
                 <option value="Éclairage : Feu arrière">Feu arrière</option>
                 <option value="Éclairage : Ampoules (Phare/Clignotant)">Ampoules (Phare/Clignotant/Stop)</option>
-                <option value="Électricité : Fusibles / Relais">Fusibles / Relais</option>
-                <option value="Électricité : Klaxon">Klaxon</option>
-                <option value="Habitacle : Lève-vitre">Lève-vitre (Moteur ou Mécanisme)</option>
-                <option value="Habitacle : Bouton de lève-vitre">Bouton de lève-vitre</option>
             </optgroup>
-            <optgroup label="Pièces : Transmission & Carrosserie">
-                <option value="Transmission : Kit d'embrayage">Kit d'embrayage (Disque + Plateau + Butée)</option>
-                <option value="Transmission : Huile de boîte de vitesse">Huile de boîte de vitesse</option>
-                <option value="Transmission : Câble d'embrayage">Câble d'embrayage</option>
-                <option value="Moteur : Câble d'accélérateur">Câble d'accélérateur</option>
-                <option value="Carrosserie : Balais d'essuie-glace">Balais d'essuie-glace</option>
-                <option value="Carrosserie : Moteur essuie-glace">Moteur d'essuie-glace</option>
-                <option value="Carrosserie : Pare-brise">Pare-brise</option>
-                <option value="Carrosserie : Rétroviseur">Rétroviseur</option>
-                <option value="Carrosserie : Pare-chocs">Pare-chocs</option>
-                <option value="Carrosserie : Poignée de porte">Poignée de porte</option>
+            <optgroup label="Autres Pièces">
+                <option value="Autre Pièce">Autre Pièce (Général)</option>
             </optgroup>
         `;
 
-        let fbUser = null;
-        let users = [];
-        let vehicles = [];
-        let drivers = [];
-        let revenues = []; 
-        let expenses = []; 
-        let parts = []; 
-        let staff = [];
-        let catalogs = [];
-        let mechanics = []; 
-        let immobilizations = []; 
-        let debts = [];           
-        
-        let loggedInUser = null;
-        let currentOwnerFilter = 'all'; 
-        let currentLedgerTab = 'all'; 
-
-        let chartFinance = null;
-        let chartFleet = null;
-        let chartTopVehicles = null;
-        let chartExpenses = null;
-
         // ==========================================
-        // SYSTÈME DE CONNEXION / INSCRIPTION
+        // 3. FONCTIONS UTILITAIRES & AIDEURS
         // ==========================================
-        let isLoginMode = true;
+        function getOwnerName(id) { 
+            const u = users.find(u => u && u.id === id); 
+            return u ? u.name : 'Inconnu'; 
+        }
 
-        window.toggleSignup = () => {
-            isLoginMode = !isLoginMode;
-            document.getElementById('loginBtnText').textContent = isLoginMode ? 'Se connecter' : 'Créer le compte';
-            document.getElementById('toggleAuthBtn').textContent = isLoginMode ? 'Première connexion ? Créer mon compte Admin' : "J'ai déjà un compte, me connecter";
-            document.getElementById('loginError').classList.add('hidden');
+        window.updateAdminDropdown = function() {
+            const select = document.getElementById('ownerFilter'); 
+            if(!select) return;
+            const currentVal = select.value;
+            select.innerHTML = `<option value="all">🌐 Tous les parcs</option>` + users.filter(u => u && u.role !== 'admin').map(o => `<option value="${o.id}">🏢 ${o.name}</option>`).join('');
+            if(users.find(u => u && u.id === currentVal)) select.value = currentVal;
         };
 
-        window.handleLogin = async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value.trim();
-            const pass = document.getElementById('loginPass').value.trim();
-            const errorDiv = document.getElementById('loginError');
-            const btnText = document.getElementById('loginBtnText');
-
-            errorDiv.classList.add('hidden');
-            btnText.innerHTML = '<div class="loader border-black border-t-transparent"></div>';
-
-            try {
-                if (isLoginMode) {
-                    await signInWithEmailAndPassword(auth, email, pass);
-                } else {
-                    await createUserWithEmailAndPassword(auth, email, pass);
-                }
-            } catch (error) {
-                console.error("Auth Error:", error);
-                btnText.textContent = isLoginMode ? 'Se connecter' : 'Créer le compte';
-                
-                if(error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-                    errorDiv.textContent = "Email ou mot de passe incorrect.";
-                } else if (error.code === 'auth/email-already-in-use') {
-                    errorDiv.textContent = "Ce compte existe déjà. Veuillez vous connecter.";
-                } else if (error.code === 'auth/weak-password') {
-                    errorDiv.textContent = "Le mot de passe doit faire au moins 6 caractères.";
-                } else {
-                    errorDiv.textContent = "Erreur : " + error.message;
-                }
-                errorDiv.classList.remove('hidden');
-            }
+        window.changeOwnerFilter = function(ownerId) {
+            if(loggedInUser && loggedInUser.role !== 'admin') return;
+            currentOwnerFilter = ownerId; 
+            updateTitle(); 
+            updateUI(); 
+            updateCharts();
         };
 
-        window.customAlert = (message, isError = false) => {
+        function updateTitle() {
+            const title = document.getElementById('dashTitle');
+            if (!title) return;
+            if(currentOwnerFilter === 'all') title.textContent = "Vue d'ensemble Globale";
+            else title.textContent = "Vue du Parc : " + getOwnerName(currentOwnerFilter);
+        }
+
+        function getDocStatus(dateString) {
+            if (!dateString) return { state: 'empty', label: 'Non défini', bg: 'bg-gray-800', text: 'text-gray-500' };
+            const today = new Date(); today.setHours(0,0,0,0); 
+            const expDate = new Date(dateString);
+            const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+            if (diffDays <= 0) return { state: 'expired', label: 'Expiré', bg: 'bg-red-500/20 border border-red-500/50', text: 'text-red-400 font-bold' };
+            if (diffDays <= 30) return { state: 'warning', label: `J-${diffDays}`, bg: 'bg-orange-500/20 border border-orange-500/50', text: 'text-orange-400 font-bold' };
+            return { state: 'valid', label: 'Valide', bg: 'bg-green-500/10 border border-green-500/30', text: 'text-green-400' };
+        }
+
+        function resolveOwnerId() { 
+            return (loggedInUser && loggedInUser.role === 'admin') ? (document.getElementById('formOwnerId') ? document.getElementById('formOwnerId').value : loggedInUser.id) : loggedInUser.id; 
+        }
+
+        window.customAlert = function(message, isError = false) {
             const overlay = document.createElement('div');
             overlay.className = "fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[200] p-4 slide-in";
             overlay.innerHTML = `
@@ -1037,7 +970,7 @@
             document.getElementById('btnOk').onclick = () => document.body.removeChild(overlay);
         };
 
-        window.customConfirm = (message, callback) => {
+        window.customConfirm = function(message, callback) {
             const overlay = document.createElement('div');
             overlay.className = "fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[200] p-4 slide-in";
             overlay.innerHTML = `
@@ -1054,102 +987,64 @@
             document.getElementById('btnConfirm').onclick = () => { document.body.removeChild(overlay); callback(); };
         };
 
-        window.logout = async () => {
-            await signOut(auth);
-            loggedInUser = null;
-            document.getElementById('mainApp').classList.add('hidden');
-            document.getElementById('loginScreen').classList.remove('hidden');
-            document.getElementById('loginForm').reset();
-            document.getElementById('loginBtnText').textContent = 'Se connecter';
-        };
+        // ==========================================
+        // 4. SYSTÈME DE COMPRESSION D'IMAGE ROBUSTE
+        // ==========================================
+        window.compressImage = function(file) {
+            return new Promise((resolve, reject) => {
+                if (!file) return resolve(null);
+                if (!file.type.startsWith('image/')) return reject(new Error("Le fichier sélectionné n'est pas une image."));
 
-        const getColRef = (colName) => collection(db, 'artifacts', appId, 'public', 'data', colName);
-
-        function setupListeners() {
-            if (!fbUser) return;
-
-            onSnapshot(getColRef('users'), async (snapshot) => {
-                users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                loggedInUser = users.find(u => u && (u.id === fbUser.uid || (u.email && u.email === fbUser.email)));
-                
-                if (!loggedInUser && fbUser.email.toLowerCase().includes('admin')) {
-                    const newAdmin = { email: fbUser.email, role: 'admin', name: 'Administrateur Principal' };
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', fbUser.uid), newAdmin);
-                    loggedInUser = { id: fbUser.uid, ...newAdmin };
-                }
-
-                if (loggedInUser) {
-                    if (loggedInUser.role === 'admin') updateAdminDropdown();
-                    updateUI();
-                    if(document.getElementById('mainApp').classList.contains('hidden')) {
-                        launchApp();
-                    }
-                } else {
-                    logout();
-                    customAlert("Accès refusé : Votre compte n'est pas autorisé dans cette base de données.", true);
-                }
-            }, console.error);
-
-            onSnapshot(getColRef('vehicles'), (snapshot) => { vehicles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) { updateUI(); updateCharts(); } }, console.error);
-            onSnapshot(getColRef('drivers'), (snapshot) => { drivers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) updateUI(); }, console.error);
-            onSnapshot(getColRef('revenues'), (snapshot) => { revenues = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) { updateUI(); updateCharts(); } }, console.error);
-            onSnapshot(getColRef('expenses'), (snapshot) => { expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) { updateUI(); updateCharts(); } }, console.error);
-            onSnapshot(getColRef('parts'), (snapshot) => { parts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) updateUI(); }, console.error); 
-            onSnapshot(getColRef('staff'), (snapshot) => { staff = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) updateUI(); }, console.error); 
-            onSnapshot(getColRef('catalogs'), (snapshot) => { catalogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) updateUI(); }, console.error); 
-            onSnapshot(getColRef('mechanics'), (snapshot) => { mechanics = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) updateUI(); }, console.error); 
-            onSnapshot(getColRef('immobilizations'), (snapshot) => { immobilizations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) updateUI(); }, console.error); 
-            onSnapshot(getColRef('debts'), (snapshot) => { debts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) updateUI(); }, console.error); 
-        }
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                try {
-                    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                        for(let registration of registrations) { registration.update().catch(err => console.log("Update ignoré", err)); }
-                    }).catch(err => { console.log("SW bloqué par la Sandbox."); });
-                } catch (e) { console.log("SW non supporté.", e); }
+                const reader = new FileReader();
+                reader.onerror = () => reject(new Error("Erreur de lecture du fichier."));
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onerror = () => reject(new Error("Erreur de chargement de l'image."));
+                    img.onload = () => {
+                        try {
+                            const canvas = document.createElement('canvas');
+                            const MAX_WIDTH = 300, MAX_HEIGHT = 300;
+                            let width = img.width, height = img.height;
+                            if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
+                            else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
+                            
+                            canvas.width = width; canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, width, height);
+                            ctx.drawImage(img, 0, 0, width, height);
+                            
+                            resolve(canvas.toDataURL('image/jpeg', 0.3));
+                        } catch (err) {
+                            reject(new Error("Erreur de compression : " + err.message));
+                        }
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
             });
-        }
-
-        onAuthStateChanged(auth, (user) => { 
-            fbUser = user; 
-            if (user) { setupListeners(); } 
-            else { document.getElementById('mainApp').classList.add('hidden'); document.getElementById('loginScreen').classList.remove('hidden'); }
-        });
-
-        function launchApp() {
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('mainApp').classList.remove('hidden');
-            
-            const adminContainer = document.getElementById('adminFilterContainer');
-            const adminNavBtn = document.getElementById('adminNavBtn');
-            document.getElementById('headerUserName').innerHTML = `Bienvenue, <span class="text-yango-yellow">${loggedInUser.name}</span>`;
-            document.getElementById('sidebarRoleLabel').textContent = loggedInUser.role === 'admin' ? 'Super Administrateur' : 'Propriétaire de Parc';
-
-            if(loggedInUser.role === 'admin') {
-                adminContainer.classList.remove('hidden'); adminContainer.classList.add('flex'); adminNavBtn.classList.remove('hidden');
-                updateAdminDropdown(); currentOwnerFilter = document.getElementById('ownerFilter').value;
-            } else {
-                adminContainer.classList.add('hidden'); adminContainer.classList.remove('flex'); adminNavBtn.classList.add('hidden');
-                currentOwnerFilter = loggedInUser.id; 
-            }
-            showSection('dashboard'); updateTitle(); updateUI();
-            if(!chartFinance) initCharts(); else updateCharts();
-        }
-
-        window.changeOwnerFilter = (ownerId) => {
-            if(loggedInUser && loggedInUser.role !== 'admin') return;
-            currentOwnerFilter = ownerId; updateTitle(); updateUI(); updateCharts();
         };
 
-        function updateTitle() {
-            const title = document.getElementById('dashTitle');
-            if(currentOwnerFilter === 'all') title.textContent = "Vue d'ensemble Globale";
-            else title.textContent = "Vue du Parc : " + getOwnerName(currentOwnerFilter);
-        }
+        window.renderImageAsync = function(containerId, base64Str) {
+            const container = document.getElementById(containerId);
+            if(!container) return;
+            if(!base64Str) {
+                container.innerHTML = '<p class="text-sm text-gray-500 italic">Non fournie</p>';
+                container.classList.remove('border');
+                return;
+            }
+            setTimeout(() => {
+                const img = new Image();
+                img.className = "max-h-48 rounded-lg object-contain border border-gray-700 fade-in w-full h-full";
+                img.src = base64Str;
+                img.onload = () => { container.innerHTML = ''; container.appendChild(img); container.classList.remove('bg-gray-800', 'border'); };
+                img.onerror = () => { container.innerHTML = '<p class="text-sm text-red-500 italic">Erreur d\'affichage</p>'; };
+            }, 50);
+        };
 
-        window.showSection = (section) => {
+        // ==========================================
+        // 5. NAVIGATION ET VUES
+        // ==========================================
+        window.showSection = function(section) {
             document.querySelectorAll('#contentArea > div[id]').forEach(div => {
                 if (['dashboard', 'vehicles', 'drivers', 'personnel', 'mechanics', 'immobilizations', 'documents', 'finance', 'debts', 'parts', 'reports', 'admin', 'catalog'].includes(div.id)) {
                     div.classList.add('hidden');
@@ -1168,7 +1063,7 @@
             if(section === 'dashboard') updateCharts();
         };
 
-        window.switchFinanceTab = (tab) => {
+        window.switchFinanceTab = function(tab) {
             currentLedgerTab = tab;
             document.getElementById('tabAll').className = tab === 'all' ? 'text-yango-yellow font-bold border-b-2 border-yango-yellow pb-2 px-2 transition-all' : 'text-gray-400 hover:text-white pb-2 px-2 transition-all';
             document.getElementById('tabRev').className = tab === 'revenues' ? 'text-yango-yellow font-bold border-b-2 border-yango-yellow pb-2 px-2 transition-all' : 'text-gray-400 hover:text-white pb-2 px-2 transition-all';
@@ -1176,145 +1071,7 @@
             updateUI(); 
         };
 
-        window.exportToCSV = () => {
-            if(!fbUser) return;
-            const fRevs = currentOwnerFilter === 'all' ? revenues : revenues.filter(r => r.ownerId === currentOwnerFilter);
-            const fExps = currentOwnerFilter === 'all' ? expenses : expenses.filter(e => e.ownerId === currentOwnerFilter);
-            let items = [];
-            
-            if(currentLedgerTab === 'all' || currentLedgerTab === 'revenues') fRevs.forEach(r => items.push({...r, _type: 'rev'}));
-            if(currentLedgerTab === 'all' || currentLedgerTab === 'expenses') fExps.forEach(e => items.push({...e, _type: 'exp'}));
-            items.sort((a,b) => b.timestamp - a.timestamp);
-
-            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
-            csvContent += "Date;Type / Motif;Vehicule;Chauffeur/Agent;Details;Impact Net (FCFA)\n";
-
-            items.forEach(item => {
-                let date = item.date || "-";
-                let motif = item._type === 'rev' ? (item.motif || "-") : (item.type || "-");
-                let veh = item.vehicle || "-";
-                let driverName = "-";
-                if(item.driverId) { const d = drivers.find(drv => drv.id === item.driverId); if(d) driverName = `${d.firstName} ${d.lastName}`; }
-                let details = item._type === 'rev' ? (item.expected ? `Attendu: ${item.expected}` : '-') : (item.description || '-');
-                if (item.paymentMethod) details += ` | Paiement: ${item.paymentMethod}` + (item.paymentRef ? ` (${item.paymentRef})` : '');
-                let impact = item._type === 'rev' ? `+${item.brut}` : `-${item.amount}`;
-                let row = [date, motif, veh, driverName, details, impact].map(val => `"${String(val).replace(/"/g, '""')}"`).join(";");
-                csvContent += row + "\n";
-            });
-
-            const encodedUri = encodeURI(csvContent); const link = document.createElement("a");
-            link.setAttribute("href", encodedUri); link.setAttribute("download", `Yango_Finances_${new Date().toLocaleDateString('fr-FR').replace(/\//g,'-')}.csv`);
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        };
-
-        window.exportToPDF = () => {
-            const element = document.getElementById('ledgerExportArea');
-            const printHeader = element.querySelector('h3.print-only');
-            const originalBg = element.style.background;
-            element.style.background = '#ffffff'; element.style.color = '#000000';
-            if(printHeader) printHeader.style.display = 'block';
-            const noPrintElements = element.querySelectorAll('.no-print');
-            noPrintElements.forEach(el => el.style.display = 'none');
-
-            const opt = { margin: 10, filename: `Yango_Finances_${new Date().toLocaleDateString('fr-FR').replace(/\//g,'-')}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } };
-            const btnText = document.querySelector('button[title="Exporter PDF"]').innerHTML;
-            document.querySelector('button[title="Exporter PDF"]').innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Génération...';
-
-            html2pdf().set(opt).from(element).save().then(() => {
-                element.style.background = originalBg; element.style.color = '';
-                if(printHeader) printHeader.style.display = 'none';
-                noPrintElements.forEach(el => el.style.display = '');
-                document.querySelector('button[title="Exporter PDF"]').innerHTML = btnText;
-            });
-        };
-
-        window.exportReportsCSV = () => {
-            if(!fbUser) return;
-            const fExps = currentOwnerFilter === 'all' ? expenses : expenses.filter(e => e.ownerId === currentOwnerFilter);
-            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
-            csvContent += "Type;Date;Bénéficiaire / Chauffeur;Montant (FCFA);Motif / Détails\n";
-
-            fExps.filter(e => e.type === "Amende / Police").forEach(item => {
-                let dName = "-"; if(item.driverId) { const d = drivers.find(drv => drv.id === item.driverId); if(d) dName = `${d.firstName} ${d.lastName}`; }
-                let row = ["AMENDE", item.date || "-", dName, `-${item.amount}`, item.description || "-"].map(val => `"${String(val).replace(/"/g, '""')}"`).join(";");
-                csvContent += row + "\n";
-            });
-
-            fExps.filter(e => e.type === "Salaire / RH").forEach(item => {
-                let dName = "-"; if(item.driverId) { const d = drivers.find(drv => drv.id === item.driverId); if(d) dName = `${d.firstName} ${d.lastName}`; }
-                let row = ["SALAIRE", item.date || "-", dName, `-${item.amount}`, item.description || "-"].map(val => `"${String(val).replace(/"/g, '""')}"`).join(";");
-                csvContent += row + "\n";
-            });
-
-            const encodedUri = encodeURI(csvContent); const link = document.createElement("a");
-            link.setAttribute("href", encodedUri); link.setAttribute("download", `Yango_RH_Amendes_${new Date().toLocaleDateString('fr-FR').replace(/\//g,'-')}.csv`);
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        };
-
-        window.exportReportsPDF = () => {
-            const element = document.getElementById('reportsArea');
-            const printHeader = element.querySelector('h3.print-only');
-            const originalBg = element.style.background;
-            element.style.background = '#ffffff'; element.style.color = '#000000';
-            if(printHeader) printHeader.style.display = 'block';
-            
-            const opt = { margin: 10, filename: `Yango_RH_Amendes_${new Date().toLocaleDateString('fr-FR').replace(/\//g,'-')}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } };
-            const btnHTML = document.querySelector('button[title="Exporter PDF"]').innerHTML;
-            document.querySelector('button[title="Exporter PDF"]').innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Génération...';
-
-            html2pdf().set(opt).from(element).save().then(() => {
-                element.style.background = originalBg; element.style.color = '';
-                if(printHeader) printHeader.style.display = 'none';
-                document.querySelector('button[title="Exporter PDF"]').innerHTML = btnHTML;
-            });
-        };
-
-
-        // ==========================================
-        // 5. GESTION DES MODALES & IMAGES
-        // ==========================================
-        
-        window.compressImage = (file) => {
-            return new Promise((resolve) => {
-                if (!file) return resolve(null);
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 400; const MAX_HEIGHT = 400;
-                        let width = img.width; let height = img.height;
-                        if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
-                        else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
-                        canvas.width = width; canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.4)); 
-                    };
-                    img.src = event.target.result;
-                };
-            });
-        };
-
-        window.renderImageAsync = (containerId, base64Str) => {
-            if(!base64Str) return;
-            setTimeout(() => {
-                const container = document.getElementById(containerId);
-                if(container) {
-                    const img = new Image();
-                    img.className = "max-h-48 rounded-lg object-contain border border-gray-700 fade-in w-full h-full";
-                    img.src = base64Str;
-                    img.onload = () => {
-                        container.innerHTML = '';
-                        container.appendChild(img);
-                        container.classList.remove('bg-gray-800', 'border');
-                    };
-                }
-            }, 50);
-        };
-
-        window.toggleMechanicSelect = (status, prefix = 'v') => {
+        window.toggleMechanicSelect = function(status, prefix = 'v') {
             const div = document.getElementById(prefix + 'MechanicDiv');
             if(div) {
                 if (status === 'maintenance') { div.classList.remove('hidden'); } 
@@ -1322,7 +1079,21 @@
             }
         };
 
-        window.openModal = (type, dataId = null) => {
+        window.autoFillExpected = function(driverId) {
+            const driver = drivers.find(d => d.id === driverId);
+            if(driver && driver.dailyExpected) { document.getElementById('revExpected').value = driver.dailyExpected; } 
+            else { document.getElementById('revExpected').value = ''; }
+        };
+
+        // ==========================================
+        // 6. GESTION DES MODALES (OPEN / CLOSE)
+        // ==========================================
+        window.closeModal = function() {
+            document.getElementById('modal').classList.add('hidden');
+            document.getElementById('modal').classList.remove('flex');
+        };
+
+        window.openModal = function(type, dataId = null) {
             if(!loggedInUser) return;
             const modal = document.getElementById('modal');
             const title = document.getElementById('modalTitle');
@@ -1344,11 +1115,111 @@
             const availableMechanics = (currentOwnerFilter === 'all') ? mechanics : mechanics.filter(m => m.ownerId === currentOwnerFilter);
             const mechanicOpts = availableMechanics.map(m => `<option value="${m.id}">${m.name} (${m.type})</option>`).join('');
 
-            if (type === 'addRevenue') {
+            if (type === 'addDriver') {
+                title.textContent = 'Ajouter un Chauffeur';
+                content.innerHTML = `
+                    <form onsubmit="saveDriver(event)" class="space-y-3">
+                        ${ownerSelectHtml}
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="text-xs text-gray-400">Nom</label><input type="text" id="dLastName" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                            <div><label class="text-xs text-gray-400">Prénoms</label><input type="text" id="dFirstName" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        </div>
+                        <div><label class="text-xs text-gray-400">Lieu d'habitation</label><input type="text" id="dAddress" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        
+                        <div><label class="text-xs text-gray-400">Numéro de téléphone (Format WhatsApp: 225...)</label><input type="text" id="dPhone" required placeholder="Ex: 22501020304" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        
+                        <div class="p-3 bg-yango-yellow/10 border border-yango-yellow/30 rounded-lg">
+                            <label class="text-xs text-yango-yellow font-bold">Versement Journalier Attendu (FCFA)</label>
+                            <input type="number" id="dExpected" placeholder="Ex: 25000" class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white font-bold">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 mt-2">
+                            <div><label class="text-xs text-gray-400">N° Pièce d'identité</label><input type="text" id="dIdCard" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                            <div><label class="text-xs text-gray-400">N° Permis</label><input type="text" id="dLicense" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        </div>
+                        
+                        <div class="border-t border-gray-700 pt-3 mt-2">
+                            <p class="text-xs text-purple-400 font-bold mb-2 uppercase"><i class="fas fa-camera mr-1"></i> Pièces Jointes (Photos)</p>
+                            <div class="space-y-2">
+                                <div><label class="text-[10px] text-gray-400">Photo Chauffeur (Optionnel)</label><input type="file" accept="image/*" id="dPhotoProfile" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-gray-700 file:text-white hover:file:bg-gray-600"></div>
+                                <div><label class="text-[10px] text-gray-400">Photo Permis de Conduire (Optionnel)</label><input type="file" accept="image/*" id="dPhotoLicense" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-gray-700 file:text-white hover:file:bg-gray-600"></div>
+                                <div><label class="text-[10px] text-gray-400">Photo Pièce d'identité (Optionnel)</label><input type="file" accept="image/*" id="dPhotoIdCard" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-gray-700 file:text-white hover:file:bg-gray-600"></div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-700 pt-3 mt-2">
+                            <p class="text-xs text-yango-yellow font-bold mb-2 uppercase">Échéances Santé (Optionnel)</p>
+                            <div><label class="text-xs text-gray-400">Expiration Visite Médicale</label><input type="date" id="dMed" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
+                        </div>
+                        <button type="submit" class="w-full py-2 bg-yango-yellow text-black rounded-lg font-medium hover:bg-yellow-400 mt-3">Enregistrer Chauffeur</button>
+                    </form>
+                `;
+            } else if (type === 'editDriver') {
+                const driver = drivers.find(d => d.id === dataId);
+                title.textContent = 'Modifier un Chauffeur';
+                content.innerHTML = `
+                    <form onsubmit="updateDriver(event, '${driver.id}')" class="space-y-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="text-xs text-gray-400">Nom</label><input type="text" id="editDLastName" value="${driver.lastName}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                            <div><label class="text-xs text-gray-400">Prénoms</label><input type="text" id="editDFirstName" value="${driver.firstName}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        </div>
+                        <div><label class="text-xs text-gray-400">Lieu d'habitation</label><input type="text" id="editDAddress" value="${driver.address}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <div><label class="text-xs text-gray-400">Téléphone (WhatsApp)</label><input type="text" id="editDPhone" value="${driver.phone}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <div class="p-3 bg-yango-yellow/10 border border-yango-yellow/30 rounded-lg">
+                            <label class="text-xs text-yango-yellow font-bold">Versement Journalier Attendu (FCFA)</label>
+                            <input type="number" id="editDExpected" value="${driver.dailyExpected || ''}" class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white font-bold">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 mt-2">
+                            <div><label class="text-xs text-gray-400">N° Pièce d'identité</label><input type="text" id="editDIdCard" value="${driver.idCard}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                            <div><label class="text-xs text-gray-400">N° Permis</label><input type="text" id="editDLicense" value="${driver.license}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        </div>
+
+                        <div class="border-t border-gray-700 pt-3 mt-2">
+                            <p class="text-xs text-purple-400 font-bold mb-2 uppercase"><i class="fas fa-camera mr-1"></i> Pièces Jointes (Laissez vide pour conserver l'actuelle)</p>
+                            <div class="space-y-2">
+                                <div><label class="text-[10px] text-gray-400">Nouvelle Photo Chauffeur</label><input type="file" accept="image/*" id="editDPhotoProfile" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-gray-700 file:text-white hover:file:bg-gray-600"></div>
+                                <div><label class="text-[10px] text-gray-400">Nouveau Permis de Conduire</label><input type="file" accept="image/*" id="editDPhotoLicense" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-gray-700 file:text-white hover:file:bg-gray-600"></div>
+                                <div><label class="text-[10px] text-gray-400">Nouvelle Pièce d'identité</label><input type="file" accept="image/*" id="editDPhotoIdCard" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-gray-700 file:text-white hover:file:bg-gray-600"></div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full py-2 bg-yango-yellow text-black rounded-lg font-medium hover:bg-yellow-400 mt-3">Mettre à jour</button>
+                    </form>
+                `;
+            } else if (type === 'viewDriverDocs') {
+                const driver = drivers.find(d => d.id === dataId);
+                title.innerHTML = `<i class="fas fa-folder-open text-purple-400 mr-2"></i> Documents : ${driver.firstName} ${driver.lastName}`;
+                content.innerHTML = `
+                    <div class="space-y-6">
+                        <div>
+                            <h4 class="text-xs text-gray-400 uppercase font-bold mb-2 border-b border-gray-700 pb-1">Photo de profil</h4>
+                            <div id="imgC-Profile" class="w-full min-h-[100px] flex justify-center items-center bg-gray-800 border border-gray-700 rounded-lg overflow-hidden relative">
+                                ${driver.photoProfile ? '<div class="loader"></div>' : '<p class="text-sm text-gray-500 italic">Non fournie</p>'}
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="text-xs text-gray-400 uppercase font-bold mb-2 border-b border-gray-700 pb-1">Permis de conduire (${driver.license || 'N/A'})</h4>
+                            <div id="imgC-License" class="w-full min-h-[100px] flex justify-center items-center bg-gray-800 border border-gray-700 rounded-lg overflow-hidden relative">
+                                ${driver.photoLicense ? '<div class="loader"></div>' : '<p class="text-sm text-gray-500 italic">Non fourni</p>'}
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="text-xs text-gray-400 uppercase font-bold mb-2 border-b border-gray-700 pb-1">Pièce d'identité (${driver.idCard || 'N/A'})</h4>
+                            <div id="imgC-Id" class="w-full min-h-[100px] flex justify-center items-center bg-gray-800 border border-gray-700 rounded-lg overflow-hidden relative">
+                                ${driver.photoIdCard ? '<div class="loader"></div>' : '<p class="text-sm text-gray-500 italic">Non fournie</p>'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                renderImageAsync('imgC-Profile', driver.photoProfile);
+                renderImageAsync('imgC-License', driver.photoLicense);
+                renderImageAsync('imgC-Id', driver.photoIdCard);
+
+            } else if (type === 'addRevenue') {
                 title.innerHTML = '<i class="fas fa-plus-circle text-green-400 mr-2"></i> Ajouter Recette / Versement';
                 content.innerHTML = `
                     <form onsubmit="saveRevenue(event)" class="space-y-4">
-                        <div><label class="text-xs text-gray-400">Date</label><input type="date" id="revDate" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <div><label class="text-xs text-gray-400">Date</label><input type="date" id="revDate" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white" value="${new Date().toISOString().split('T')[0]}"></div>
                         <div><label class="text-xs text-gray-400">Véhicule (Optionnel)</label><select id="revVehicle" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"><option value="">Aucun véhicule</option>${vehOptsPlate}</select></div>
                         
                         <div class="p-3 border border-gray-600 rounded-lg bg-gray-800/50">
@@ -1372,38 +1243,11 @@
                         <button type="submit" class="w-full py-3 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 mt-4">Enregistrer Recette</button>
                     </form>
                 `;
-            } else if (type === 'addPart') {
-                title.innerHTML = '<i class="fas fa-cogs text-blue-400 mr-2"></i> Annuaire des Pièces & Prix';
-                content.innerHTML = `
-                    <form onsubmit="savePart(event)" class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div><label class="text-xs text-gray-400">Date d'achat / Relevé</label><input type="date" id="pDate" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white" value="${new Date().toISOString().split('T')[0]}"></div>
-                            <div><label class="text-xs text-gray-400">Nom de la pièce</label><input type="text" id="pName" placeholder="Ex: Plaquettes de frein" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        </div>
-                        
-                        <div><label class="text-xs text-gray-400">Marque de la pièce (Optionnel)</label><input type="text" id="pBrand" placeholder="Ex: Toyota, Bosch, Adaptable..." class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        
-                        <div class="p-3 border border-gray-700 bg-gray-800/50 rounded-lg space-y-3">
-                            <h4 class="text-xs text-yango-yellow font-bold uppercase"><i class="fas fa-store mr-1"></i> Infos du Fournisseur</h4>
-                            <div><label class="text-xs text-gray-400">Nom du Magasin / Fournisseur</label><input type="text" id="pSupplier" required class="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white"></div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div><label class="text-xs text-gray-400">Téléphone (Optionnel)</label><input type="text" id="pPhone" placeholder="Ex: 0102030405" class="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white"></div>
-                                <div><label class="text-xs text-gray-400">Lieu / Commune</label><input type="text" id="pLocation" placeholder="Ex: Adjamé Renault" class="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white"></div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div><label class="text-xs text-gray-400">Prix Unitaire (FCFA)</label><input type="number" id="pPrice" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white font-bold text-blue-400"></div>
-                            <div><label class="text-xs text-gray-400">Quantité (Mettre 1 si juste pour info)</label><input type="number" id="pQty" required value="1" min="1" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        </div>
-                        <button type="submit" class="w-full py-3 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 mt-4">Enregistrer dans la base</button>
-                    </form>
-                `;
             } else if (type === 'addExpense') {
                 title.innerHTML = '<i class="fas fa-minus-circle text-red-400 mr-2"></i> Dépense ou Amende';
                 content.innerHTML = `
                     <form onsubmit="saveExpense(event)" class="space-y-4">
-                        <div><label class="text-xs text-gray-400">Date</label><input type="date" id="expDate" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <div><label class="text-xs text-gray-400">Date</label><input type="date" id="expDate" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white" value="${new Date().toISOString().split('T')[0]}"></div>
                         
                         <div>
                             <label class="text-xs text-gray-400">Catégorie de la dépense</label>
@@ -1452,6 +1296,33 @@
                         </div>
 
                         <button type="submit" class="w-full py-3 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 mt-4">Enregistrer Dépense</button>
+                    </form>
+                `;
+            } else if (type === 'addPart') {
+                title.innerHTML = '<i class="fas fa-cogs text-blue-400 mr-2"></i> Annuaire des Pièces & Prix';
+                content.innerHTML = `
+                    <form onsubmit="savePart(event)" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="text-xs text-gray-400">Date d'achat / Relevé</label><input type="date" id="pDate" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white" value="${new Date().toISOString().split('T')[0]}"></div>
+                            <div><label class="text-xs text-gray-400">Nom de la pièce</label><input type="text" id="pName" placeholder="Ex: Plaquettes de frein" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        </div>
+                        
+                        <div><label class="text-xs text-gray-400">Marque de la pièce (Optionnel)</label><input type="text" id="pBrand" placeholder="Ex: Toyota, Bosch, Adaptable..." class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        
+                        <div class="p-3 border border-gray-700 bg-gray-800/50 rounded-lg space-y-3">
+                            <h4 class="text-xs text-yango-yellow font-bold uppercase"><i class="fas fa-store mr-1"></i> Infos du Fournisseur</h4>
+                            <div><label class="text-xs text-gray-400">Nom du Magasin / Fournisseur</label><input type="text" id="pSupplier" required class="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white"></div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div><label class="text-xs text-gray-400">Téléphone (Optionnel)</label><input type="text" id="pPhone" placeholder="Ex: 0102030405" class="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white"></div>
+                                <div><label class="text-xs text-gray-400">Lieu / Commune</label><input type="text" id="pLocation" placeholder="Ex: Adjamé Renault" class="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white"></div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="text-xs text-gray-400">Prix Unitaire (FCFA)</label><input type="number" id="pPrice" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white font-bold text-blue-400"></div>
+                            <div><label class="text-xs text-gray-400">Quantité (Mettre 1 si juste pour info)</label><input type="number" id="pQty" required value="1" min="1" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        </div>
+                        <button type="submit" class="w-full py-3 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 mt-4">Enregistrer dans la base</button>
                     </form>
                 `;
             } else if (type === 'addImmobilization') { 
@@ -1698,45 +1569,6 @@
                         <button type="submit" class="w-full py-2 bg-yango-yellow text-black rounded-lg font-medium hover:bg-yellow-400">Enregistrer Véhicule</button>
                     </form>
                 `;
-            } else if (type === 'addDriver') {
-                title.textContent = 'Ajouter un Chauffeur';
-                content.innerHTML = `
-                    <form onsubmit="saveDriver(event)" class="space-y-3">
-                        ${ownerSelectHtml}
-                        <div class="grid grid-cols-2 gap-3">
-                            <div><label class="text-xs text-gray-400">Nom</label><input type="text" id="dLastName" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                            <div><label class="text-xs text-gray-400">Prénoms</label><input type="text" id="dFirstName" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        </div>
-                        <div><label class="text-xs text-gray-400">Lieu d'habitation</label><input type="text" id="dAddress" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        
-                        <div><label class="text-xs text-gray-400">Numéro de téléphone (Format WhatsApp: 225...)</label><input type="text" id="dPhone" required placeholder="Ex: 22501020304" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        
-                        <div class="p-3 bg-yango-yellow/10 border border-yango-yellow/30 rounded-lg">
-                            <label class="text-xs text-yango-yellow font-bold">Versement Journalier Attendu (FCFA)</label>
-                            <input type="number" id="dExpected" placeholder="Ex: 25000" class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white font-bold">
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3 mt-2">
-                            <div><label class="text-xs text-gray-400">N° Pièce d'identité</label><input type="text" id="dIdCard" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                            <div><label class="text-xs text-gray-400">N° Permis</label><input type="text" id="dLicense" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        </div>
-                        
-                        <div class="border-t border-gray-700 pt-3 mt-2">
-                            <p class="text-xs text-purple-400 font-bold mb-2 uppercase"><i class="fas fa-camera mr-1"></i> Pièces Jointes (Photos)</p>
-                            <div class="space-y-2">
-                                <div><label class="text-[10px] text-gray-400">Photo Chauffeur</label><input type="file" accept="image/*" id="dPhotoProfile" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-gray-700 file:text-white hover:file:bg-gray-600"></div>
-                                <div><label class="text-[10px] text-gray-400">Photo Permis de Conduire</label><input type="file" accept="image/*" id="dPhotoLicense" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-gray-700 file:text-white hover:file:bg-gray-600"></div>
-                                <div><label class="text-[10px] text-gray-400">Photo Pièce d'identité</label><input type="file" accept="image/*" id="dPhotoIdCard" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-gray-700 file:text-white hover:file:bg-gray-600"></div>
-                            </div>
-                        </div>
-
-                        <div class="border-t border-gray-700 pt-3 mt-2">
-                            <p class="text-xs text-yango-yellow font-bold mb-2 uppercase">Échéances Santé (Optionnel)</p>
-                            <div><label class="text-xs text-gray-400">Expiration Visite Médicale</label><input type="date" id="dMed" class="w-full px-2 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white"></div>
-                        </div>
-                        <button type="submit" class="w-full py-2 bg-yango-yellow text-black rounded-lg font-medium hover:bg-yellow-400 mt-3">Enregistrer Chauffeur</button>
-                    </form>
-                `;
             } else if (type === 'addStaff') {
                 title.innerHTML = '<i class="fas fa-id-badge text-purple-400 mr-2"></i> Ajouter un Employé';
                 content.innerHTML = `
@@ -1840,67 +1672,6 @@
                 `;
                 if(vehicle.assignedDriverId) document.getElementById('editVAssign').value = vehicle.assignedDriverId;
                 if(vehicle.mechanicId && vehicle.status === 'maintenance') document.getElementById('editVMechanic').value = vehicle.mechanicId;
-            } else if (type === 'editDriver') {
-                const driver = drivers.find(d => d.id === dataId);
-                title.textContent = 'Modifier un Chauffeur';
-                content.innerHTML = `
-                    <form onsubmit="updateDriver(event, '${driver.id}')" class="space-y-3">
-                        <div class="grid grid-cols-2 gap-3">
-                            <div><label class="text-xs text-gray-400">Nom</label><input type="text" id="editDLastName" value="${driver.lastName}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                            <div><label class="text-xs text-gray-400">Prénoms</label><input type="text" id="editDFirstName" value="${driver.firstName}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        </div>
-                        <div><label class="text-xs text-gray-400">Lieu d'habitation</label><input type="text" id="editDAddress" value="${driver.address}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        <div><label class="text-xs text-gray-400">Téléphone (WhatsApp)</label><input type="text" id="editDPhone" value="${driver.phone}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        <div class="p-3 bg-yango-yellow/10 border border-yango-yellow/30 rounded-lg">
-                            <label class="text-xs text-yango-yellow font-bold">Versement Journalier Attendu (FCFA)</label>
-                            <input type="number" id="editDExpected" value="${driver.dailyExpected || ''}" class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white font-bold">
-                        </div>
-                        <div class="grid grid-cols-2 gap-3 mt-2">
-                            <div><label class="text-xs text-gray-400">N° Pièce d'identité</label><input type="text" id="editDIdCard" value="${driver.idCard}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                            <div><label class="text-xs text-gray-400">N° Permis</label><input type="text" id="editDLicense" value="${driver.license}" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
-                        </div>
-
-                        <div class="border-t border-gray-700 pt-3 mt-2">
-                            <p class="text-xs text-purple-400 font-bold mb-2 uppercase"><i class="fas fa-camera mr-1"></i> Pièces Jointes (Laissez vide pour conserver l'actuelle)</p>
-                            <div class="space-y-2">
-                                <div><label class="text-[10px] text-gray-400">Nouvelle Photo Chauffeur</label><input type="file" accept="image/*" id="editDPhotoProfile" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-gray-700 file:text-white hover:file:bg-gray-600"></div>
-                                <div><label class="text-[10px] text-gray-400">Nouveau Permis de Conduire</label><input type="file" accept="image/*" id="editDPhotoLicense" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-gray-700 file:text-white hover:file:bg-gray-600"></div>
-                                <div><label class="text-[10px] text-gray-400">Nouvelle Pièce d'identité</label><input type="file" accept="image/*" id="editDPhotoIdCard" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-gray-700 file:text-white hover:file:bg-gray-600"></div>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="w-full py-2 bg-yango-yellow text-black rounded-lg font-medium hover:bg-yellow-400 mt-3">Mettre à jour</button>
-                    </form>
-                `;
-            } else if (type === 'viewDriverDocs') {
-                const driver = drivers.find(d => d.id === dataId);
-                title.innerHTML = `<i class="fas fa-folder-open text-purple-400 mr-2"></i> Documents : ${driver.firstName} ${driver.lastName}`;
-                content.innerHTML = `
-                    <div class="space-y-6">
-                        <div>
-                            <h4 class="text-xs text-gray-400 uppercase font-bold mb-2 border-b border-gray-700 pb-1">Photo de profil</h4>
-                            <div id="imgC-Profile" class="w-full min-h-[100px] flex justify-center items-center bg-gray-800 border border-gray-700 rounded-lg overflow-hidden">
-                                ${driver.photoProfile ? '<div class="loader"></div>' : '<p class="text-sm text-gray-500 italic">Non fournie</p>'}
-                            </div>
-                        </div>
-                        <div>
-                            <h4 class="text-xs text-gray-400 uppercase font-bold mb-2 border-b border-gray-700 pb-1">Permis de conduire (${driver.license || 'N/A'})</h4>
-                            <div id="imgC-License" class="w-full min-h-[100px] flex justify-center items-center bg-gray-800 border border-gray-700 rounded-lg overflow-hidden">
-                                ${driver.photoLicense ? '<div class="loader"></div>' : '<p class="text-sm text-gray-500 italic">Non fourni</p>'}
-                            </div>
-                        </div>
-                        <div>
-                            <h4 class="text-xs text-gray-400 uppercase font-bold mb-2 border-b border-gray-700 pb-1">Pièce d'identité (${driver.idCard || 'N/A'})</h4>
-                            <div id="imgC-Id" class="w-full min-h-[100px] flex justify-center items-center bg-gray-800 border border-gray-700 rounded-lg overflow-hidden">
-                                ${driver.photoIdCard ? '<div class="loader"></div>' : '<p class="text-sm text-gray-500 italic">Non fournie</p>'}
-                            </div>
-                        </div>
-                    </div>
-                `;
-                renderImageAsync('imgC-Profile', driver.photoProfile);
-                renderImageAsync('imgC-License', driver.photoLicense);
-                renderImageAsync('imgC-Id', driver.photoIdCard);
-
             } else if (type === 'editStaff') {
                 const s = staff.find(x => x.id === dataId);
                 title.innerHTML = `<i class="fas fa-id-badge text-purple-400 mr-2"></i> Modifier Employé : ${s.firstName} ${s.lastName}`;
@@ -1967,36 +1738,38 @@
                         </button>
                     </form>
                 `;
+            } else if (type === 'addCatalog') {
+                title.innerHTML = '<i class="fas fa-tags text-blue-400 mr-2"></i> Ajouter au Catalogue';
+                content.innerHTML = `
+                    <form onsubmit="saveCatalog(event)" class="space-y-4">
+                        <div><label class="text-xs text-gray-400">Modèle de Véhicule</label><input type="text" id="cModel" required placeholder="Ex: Suzuki Alto" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        <div><label class="text-xs text-gray-400">Nom de la pièce & Catégorie</label>
+                            <select id="cPart" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                                ${partCategoriesHtml}
+                            </select>
+                        </div>
+                        <div><label class="text-xs text-gray-400">Prix Estimé Moyen (FCFA)</label><input type="number" id="cPrice" required placeholder="Ex: 15000" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white font-bold text-blue-400"></div>
+                        <button type="submit" class="w-full py-3 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 mt-4">Enregistrer</button>
+                    </form>
+                `;
             }
             
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         };
 
-        window.closeModal = () => {
-            document.getElementById('modal').classList.add('hidden');
-            document.getElementById('modal').classList.remove('flex');
-        };
-
-        window.autoFillExpected = (driverId) => {
-            const driver = drivers.find(d => d.id === driverId);
-            if(driver && driver.dailyExpected) { document.getElementById('revExpected').value = driver.dailyExpected; } 
-            else { document.getElementById('revExpected').value = ''; }
-        };
-
         // ==========================================
-        // 6. SAUVEGARDES FIREBASE
+        // 7. OPÉRATIONS CRUD FIREBASE (SAUVEGARDES)
         // ==========================================
-        function resolveOwnerId() { return (loggedInUser && loggedInUser.role === 'admin') ? document.getElementById('formOwnerId').value : loggedInUser.id; }
 
-        window.saveOwnerSecure = async (e) => {
+        window.saveOwnerSecure = async function(e) {
             e.preventDefault();
             if(!fbUser || !loggedInUser || loggedInUser.role !== 'admin') return;
             const btn = document.getElementById('btnCreateOwner'); btn.innerHTML = '<div class="loader"></div>'; btn.disabled = true;
             const email = document.getElementById('oEmail').value.trim(); const pass = document.getElementById('oPass').value; const name = document.getElementById('oName').value.trim();
             try {
                 const newCred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
-                await secondaryAuth.signOut(); 
+                await signOut(secondaryAuth); 
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', newCred.user.uid), { email: email, name: name, role: 'owner', timestamp: new Date().getTime() });
                 closeModal(); customAlert("Compte propriétaire sécurisé créé avec succès !");
             } catch (err) {
@@ -2004,38 +1777,29 @@
             }
         };
 
-        window.updateOwnerSecure = async (e, id) => {
+        window.updateOwnerSecure = async function(e, id) {
             e.preventDefault();
             if(!fbUser || !loggedInUser || loggedInUser.role !== 'admin') return;
-            const btn = document.getElementById('btnUpdateOwner'); 
-            btn.innerHTML = '<div class="loader"></div>'; 
-            btn.disabled = true;
+            const btn = document.getElementById('btnUpdateOwner'); btn.innerHTML = '<div class="loader"></div>'; btn.disabled = true;
             const newName = document.getElementById('editOName').value.trim();
-            
             try {
                 await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', id), { name: newName });
-                closeModal(); 
-                customAlert("Les informations du propriétaire ont été mises à jour !");
+                closeModal(); customAlert("Les informations du propriétaire ont été mises à jour !");
             } catch (err) {
-                btn.innerHTML = '<span>Mettre à jour</span>'; 
-                btn.disabled = false; 
-                customAlert("Erreur : " + err.message, true);
+                btn.innerHTML = '<span>Mettre à jour</span>'; btn.disabled = false; customAlert("Erreur : " + err.message, true);
             }
         };
 
-        window.deleteOwner = (id) => {
+        window.deleteOwner = function(id) {
             if(!fbUser) return;
             if(id === loggedInUser.id) return customAlert("Action refusée : Vous ne pouvez pas supprimer votre propre compte.", true);
             customConfirm("Êtes-vous sûr de vouloir supprimer ce compte ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', id)); customAlert("Compte supprimé."); });
         };
 
-        window.saveVehicle = async (e) => {
+        window.saveVehicle = async function(e) {
             e.preventDefault(); if(!fbUser || !loggedInUser) return; const ownerId = resolveOwnerId(); if(!ownerId) return customAlert("Propriétaire non défini.", true);
-            
             const status = document.getElementById('vStatus').value;
-            let mechanicId = null;
-            if (status === 'maintenance') { mechanicId = document.getElementById('vMechanic').value || null; }
-
+            let mechanicId = null; if (status === 'maintenance') mechanicId = document.getElementById('vMechanic').value || null;
             const data = {
                 ownerId: ownerId, brand: document.getElementById('vBrand').value, plate: document.getElementById('vPlate').value, 
                 status: status, assignedDriverId: document.getElementById('vAssign').value || null, mechanicId: mechanicId,
@@ -2047,11 +1811,10 @@
             await addDoc(getColRef('vehicles'), data); closeModal();
         };
 
-        window.updateVehicle = async (e, id) => {
+        window.updateVehicle = async function(e, id) {
             e.preventDefault(); if(!fbUser || !loggedInUser) return;
             const status = document.getElementById('editVStatus').value;
-            let mechanicId = null;
-            if (status === 'maintenance') { mechanicId = document.getElementById('editVMechanic').value || null; }
+            let mechanicId = null; if (status === 'maintenance') mechanicId = document.getElementById('editVMechanic').value || null;
             const data = { 
                 brand: document.getElementById('editVBrand').value, plate: document.getElementById('editVPlate').value, status: status, 
                 assignedDriverId: document.getElementById('editVAssign').value || null, mechanicId: mechanicId,
@@ -2060,7 +1823,7 @@
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', id), data); closeModal();
         };
 
-        window.updateDocuments = async (e, id) => {
+        window.updateDocuments = async function(e, id) {
             e.preventDefault(); if(!fbUser || !loggedInUser) return;
             const data = { 
                 insuranceExpiry: document.getElementById('editIns').value || null, techVisitExpiry: document.getElementById('editTech').value || null, 
@@ -2070,339 +1833,153 @@
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', id), data); closeModal(); customAlert("Dates mises à jour !");
         };
 
-        window.deleteVehicle = (id) => {
-            if(!fbUser) return; customConfirm("Supprimer ce véhicule ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', id)); });
-        };
+        window.deleteVehicle = function(id) { if(!fbUser) return; customConfirm("Supprimer ce véhicule ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', id)); }); };
 
-        window.saveDriver = async (e) => {
+        window.saveDriver = async function(e) {
             e.preventDefault(); if(!fbUser || !loggedInUser) return; const ownerId = resolveOwnerId(); if(!ownerId) return customAlert("Propriétaire non défini.", true);
             const btn = e.target.querySelector('button[type="submit"]'); const originalText = btn.innerHTML; btn.innerHTML = '<div class="loader"></div>'; btn.disabled = true;
-
-            const photoProfile = await compressImage(document.getElementById('dPhotoProfile').files[0]);
-            const photoLicense = await compressImage(document.getElementById('dPhotoLicense').files[0]);
-            const photoIdCard = await compressImage(document.getElementById('dPhotoIdCard').files[0]);
-
-            const data = {
-                ownerId: ownerId, lastName: document.getElementById('dLastName').value, firstName: document.getElementById('dFirstName').value,
-                address: document.getElementById('dAddress').value, phone: document.getElementById('dPhone').value,
-                dailyExpected: parseFloat(document.getElementById('dExpected').value) || null,
-                idCard: document.getElementById('dIdCard').value, license: document.getElementById('dLicense').value,
-                medicalVisitExpiry: document.getElementById('dMed').value || null, 
-                photoProfile: photoProfile, photoLicense: photoLicense, photoIdCard: photoIdCard,
-                status: "actif", timestamp: new Date().getTime()
-            };
-            await addDoc(getColRef('drivers'), data); btn.innerHTML = originalText; btn.disabled = false; closeModal();
+            try {
+                const photoProfile = await compressImage(document.getElementById('dPhotoProfile').files[0]);
+                const photoLicense = await compressImage(document.getElementById('dPhotoLicense').files[0]);
+                const photoIdCard = await compressImage(document.getElementById('dPhotoIdCard').files[0]);
+                const data = {
+                    ownerId: ownerId, lastName: document.getElementById('dLastName').value, firstName: document.getElementById('dFirstName').value,
+                    address: document.getElementById('dAddress').value, phone: document.getElementById('dPhone').value, dailyExpected: parseFloat(document.getElementById('dExpected').value) || null,
+                    idCard: document.getElementById('dIdCard').value, license: document.getElementById('dLicense').value, medicalVisitExpiry: document.getElementById('dMed').value || null, 
+                    photoProfile: photoProfile, photoLicense: photoLicense, photoIdCard: photoIdCard, status: "actif", timestamp: new Date().getTime()
+                };
+                await addDoc(getColRef('drivers'), data); closeModal(); customAlert("Chauffeur enregistré !");
+            } catch (error) { customAlert("Échec : " + error.message, true); } finally { btn.innerHTML = originalText; btn.disabled = false; }
         };
 
-        window.updateDriver = async (e, id) => {
-            e.preventDefault(); if(!fbUser || !loggedInUser) return;
-            const driver = drivers.find(d => d.id === id);
+        window.updateDriver = async function(e, id) {
+            e.preventDefault(); if(!fbUser || !loggedInUser) return; const driver = drivers.find(d => d.id === id);
             const btn = e.target.querySelector('button[type="submit"]'); const originalText = btn.innerHTML; btn.innerHTML = '<div class="loader"></div>'; btn.disabled = true;
-
-            let photoProfile = driver.photoProfile; let photoLicense = driver.photoLicense; let photoIdCard = driver.photoIdCard;
-            if(document.getElementById('editDPhotoProfile').files[0]) photoProfile = await compressImage(document.getElementById('editDPhotoProfile').files[0]);
-            if(document.getElementById('editDPhotoLicense').files[0]) photoLicense = await compressImage(document.getElementById('editDPhotoLicense').files[0]);
-            if(document.getElementById('editDPhotoIdCard').files[0]) photoIdCard = await compressImage(document.getElementById('editDPhotoIdCard').files[0]);
-
-            const data = {
-                lastName: document.getElementById('editDLastName').value, firstName: document.getElementById('editDFirstName').value,
-                address: document.getElementById('editDAddress').value, phone: document.getElementById('editDPhone').value,
-                dailyExpected: parseFloat(document.getElementById('editDExpected').value) || null,
-                idCard: document.getElementById('editDIdCard').value, license: document.getElementById('editDLicense').value,
-                photoProfile: photoProfile, photoLicense: photoLicense, photoIdCard: photoIdCard
-            };
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drivers', id), data); btn.innerHTML = originalText; btn.disabled = false; closeModal();
+            try {
+                let pProfile = driver.photoProfile || null, pLicense = driver.photoLicense || null, pIdCard = driver.photoIdCard || null;
+                if(document.getElementById('editDPhotoProfile').files.length > 0) pProfile = await compressImage(document.getElementById('editDPhotoProfile').files[0]);
+                if(document.getElementById('editDPhotoLicense').files.length > 0) pLicense = await compressImage(document.getElementById('editDPhotoLicense').files[0]);
+                if(document.getElementById('editDPhotoIdCard').files.length > 0) pIdCard = await compressImage(document.getElementById('editDPhotoIdCard').files[0]);
+                const data = {
+                    lastName: document.getElementById('editDLastName').value, firstName: document.getElementById('editDFirstName').value, address: document.getElementById('editDAddress').value, phone: document.getElementById('editDPhone').value, dailyExpected: parseFloat(document.getElementById('editDExpected').value) || null,
+                    idCard: document.getElementById('editDIdCard').value, license: document.getElementById('editDLicense').value, photoProfile: pProfile, photoLicense: pLicense, photoIdCard: pIdCard
+                };
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drivers', id), data); closeModal(); customAlert("Chauffeur mis à jour.");
+            } catch (error) { customAlert("Échec : " + error.message, true); } finally { btn.innerHTML = originalText; btn.disabled = false; }
         };
 
-        window.deleteDriver = (id) => { if(!fbUser) return; customConfirm("Supprimer ce chauffeur ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drivers', id)); }); };
-        window.updateDriverDocs = async (e, id) => { e.preventDefault(); if(!fbUser || !loggedInUser) return; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drivers', id), { medicalVisitExpiry: document.getElementById('editMed').value || null }); closeModal(); customAlert("Dossier médical mis à jour !"); };
+        window.deleteDriver = function(id) { if(!fbUser) return; customConfirm("Supprimer ce chauffeur ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drivers', id)); }); };
+        window.updateDriverDocs = async function(e, id) { e.preventDefault(); if(!fbUser || !loggedInUser) return; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drivers', id), { medicalVisitExpiry: document.getElementById('editMed').value || null }); closeModal(); customAlert("Dossier médical mis à jour !"); };
 
-        window.saveStaff = async (e) => {
+        window.saveStaff = async function(e) {
             e.preventDefault(); if(!fbUser || !loggedInUser) return; const ownerId = resolveOwnerId(); if(!ownerId) return customAlert("Propriétaire non défini.", true);
             const data = {
                 ownerId: ownerId, lastName: document.getElementById('sLastName').value, firstName: document.getElementById('sFirstName').value,
-                role: document.getElementById('sRole').value, phone: document.getElementById('sPhone').value,
-                salary: parseFloat(document.getElementById('sSalary').value) || 0,
-                startDate: document.getElementById('sStartDate').value, endDate: null,
-                status: document.getElementById('sStatus').value, timestamp: new Date().getTime()
+                role: document.getElementById('sRole').value, phone: document.getElementById('sPhone').value, salary: parseFloat(document.getElementById('sSalary').value) || 0,
+                startDate: document.getElementById('sStartDate').value, endDate: null, status: document.getElementById('sStatus').value, timestamp: new Date().getTime()
             };
             await addDoc(getColRef('staff'), data); closeModal();
         };
 
-        window.updateStaff = async (e, id) => {
+        window.updateStaff = async function(e, id) {
             e.preventDefault(); if(!fbUser || !loggedInUser) return;
-            const data = {
-                role: document.getElementById('editSRole').value, phone: document.getElementById('editSPhone').value,
-                salary: parseFloat(document.getElementById('editSSalary').value) || 0, status: document.getElementById('editSStatus').value, endDate: document.getElementById('editSEndDate').value || null
-            };
+            const data = { role: document.getElementById('editSRole').value, phone: document.getElementById('editSPhone').value, salary: parseFloat(document.getElementById('editSSalary').value) || 0, status: document.getElementById('editSStatus').value, endDate: document.getElementById('editSEndDate').value || null };
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'staff', id), data); closeModal();
         };
 
-        window.deleteStaff = (id) => { if(!fbUser) return; customConfirm("Supprimer cet employé ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'staff', id)); }); };
+        window.deleteStaff = function(id) { if(!fbUser) return; customConfirm("Supprimer cet employé ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'staff', id)); }); };
         
-        window.submitPaySalary = async (e, staffId) => {
-            e.preventDefault(); if(!fbUser || !loggedInUser) return;
-            const s = staff.find(x => x.id === staffId);
-            if(!s) return;
-
-            const amount = parseFloat(document.getElementById('paySalAmount').value);
-            const date = document.getElementById('paySalDate').value;
-            const note = document.getElementById('paySalNote').value;
-            const method = document.getElementById('paySalMethod').value;
-            const ref = document.getElementById('paySalRef').value;
-
-            const expenseData = {
-                ownerId: s.ownerId, 
-                date: date,
-                vehicle: "Non spécifié",
-                driverId: null, 
-                type: "Salaire / RH",
-                amount: amount,
-                description: `Paiement Salaire: ${s.firstName} ${s.lastName} - ${note}`,
-                paymentMethod: method,
-                paymentRef: ref,
-                timestamp: new Date().getTime()
-            };
-            await addDoc(getColRef('expenses'), expenseData);
-
-            closeModal();
-            customAlert(`Le paiement de ${amount.toLocaleString()} F pour ${s.firstName} a été enregistré dans le Grand Livre.`);
+        window.submitPaySalary = async function(e, staffId) {
+            e.preventDefault(); if(!fbUser || !loggedInUser) return; const s = staff.find(x => x.id === staffId); if(!s) return;
+            const amount = parseFloat(document.getElementById('paySalAmount').value), date = document.getElementById('paySalDate').value, note = document.getElementById('paySalNote').value, method = document.getElementById('paySalMethod').value, ref = document.getElementById('paySalRef').value;
+            const expenseData = { ownerId: s.ownerId, date: date, vehicle: "Non spécifié", driverId: null, type: "Salaire / RH", amount: amount, description: `Paiement Salaire: ${s.firstName} ${s.lastName} - ${note}`, paymentMethod: method, paymentRef: ref, timestamp: new Date().getTime() };
+            await addDoc(getColRef('expenses'), expenseData); closeModal(); customAlert(`Paiement de ${amount.toLocaleString()} F enregistré.`);
         };
 
-        // SAUVEGARDE MÉCANICIEN
-        window.saveMechanic = async (e) => {
+        window.saveMechanic = async function(e) {
             e.preventDefault(); if(!fbUser || !loggedInUser) return; const ownerId = resolveOwnerId(); if(!ownerId) return customAlert("Propriétaire non défini.", true);
             const data = { ownerId: ownerId, name: document.getElementById('mName').value, type: document.getElementById('mType').value, phone: document.getElementById('mPhone').value, address: document.getElementById('mAddress').value, timestamp: new Date().getTime() };
             await addDoc(getColRef('mechanics'), data); closeModal();
         };
-        window.deleteMechanic = (id) => { if(!fbUser) return; customConfirm("Supprimer ce partenaire ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'mechanics', id)); }); };
+        window.deleteMechanic = function(id) { if(!fbUser) return; customConfirm("Supprimer ce partenaire ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'mechanics', id)); }); };
 
-        // SAUVEGARDE IMMOBILISATION (SUIVI GARAGE)
-        window.saveImmobilization = async (e) => {
-            e.preventDefault(); if(!fbUser || !loggedInUser) return;
-            const vehicleId = document.getElementById('immVehicle').value;
-            const veh = vehicles.find(v => v.id === vehicleId);
-            if(!veh) return;
-
-            const data = {
-                ownerId: veh.ownerId,
-                vehicleId: vehicleId,
-                mechanicId: document.getElementById('immMechanic').value,
-                reason: document.getElementById('immReason').value,
-                entryDate: document.getElementById('immEntryDate').value,
-                exitDate: null,
-                durationDays: null,
-                status: 'En cours',
-                timestamp: new Date().getTime()
-            };
-            
-            // 1. Sauvegarder l'immobilisation
+        window.saveImmobilization = async function(e) {
+            e.preventDefault(); if(!fbUser || !loggedInUser) return; const vehicleId = document.getElementById('immVehicle').value; const veh = vehicles.find(v => v.id === vehicleId); if(!veh) return;
+            const data = { ownerId: veh.ownerId, vehicleId: vehicleId, mechanicId: document.getElementById('immMechanic').value, reason: document.getElementById('immReason').value, entryDate: document.getElementById('immEntryDate').value, exitDate: null, durationDays: null, status: 'En cours', timestamp: new Date().getTime() };
             await addDoc(getColRef('immobilizations'), data);
-            
-            // 2. Mettre à jour automatiquement le statut du véhicule
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', vehicleId), {
-                status: 'maintenance',
-                mechanicId: data.mechanicId
-            });
-            
-            closeModal();
-            customAlert("Entrée au garage enregistrée. Le véhicule est passé en maintenance.");
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', vehicleId), { status: 'maintenance', mechanicId: data.mechanicId });
+            closeModal(); customAlert("Entrée au garage enregistrée.");
         };
 
-        window.submitEndImmobilization = async (e, immId) => {
-            e.preventDefault(); if(!fbUser || !loggedInUser) return;
-            const imm = immobilizations.find(i => i.id === immId);
-            if(!imm) return;
-
-            const exitDateStr = document.getElementById('immExitDate').value;
-            
-            // Calculer la durée
-            const entry = new Date(imm.entryDate);
-            const exit = new Date(exitDateStr);
-            const diffTime = Math.abs(exit - entry);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 pour compter le jour même
-
-            // 1. Mettre à jour l'immobilisation
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'immobilizations', immId), {
-                exitDate: exitDateStr,
-                durationDays: diffDays,
-                status: 'Terminé'
-            });
-
-            // 2. Remettre le véhicule Actif
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', imm.vehicleId), {
-                status: 'actif',
-                mechanicId: null
-            });
-
+        window.submitEndImmobilization = async function(e, immId) {
+            e.preventDefault(); if(!fbUser || !loggedInUser) return; const imm = immobilizations.find(i => i.id === immId); if(!imm) return;
+            const exitDateStr = document.getElementById('immExitDate').value; const entry = new Date(imm.entryDate); const exit = new Date(exitDateStr); const diffDays = Math.ceil(Math.abs(exit - entry) / (1000 * 60 * 60 * 24)) + 1;
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'immobilizations', immId), { exitDate: exitDateStr, durationDays: diffDays, status: 'Terminé' });
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', imm.vehicleId), { status: 'actif', mechanicId: null });
             closeModal();
         };
+        window.deleteImmobilization = function(id) { if(!fbUser) return; customConfirm("Supprimer cet historique ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'immobilizations', id)); }); };
 
-        window.deleteImmobilization = (id) => { if(!fbUser) return; customConfirm("Supprimer cet historique d'immobilisation ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'immobilizations', id)); }); };
-
-
-        // SAUVEGARDE CRÉDITS & DETTES
-        window.saveDebt = async (e) => {
-            e.preventDefault(); if(!fbUser || !loggedInUser) return;
-            let ownerId = (loggedInUser.role === 'admin') ? currentOwnerFilter : loggedInUser.id;
-            if(ownerId === 'all') ownerId = loggedInUser.id;
-            
+        window.saveDebt = async function(e) {
+            e.preventDefault(); if(!fbUser || !loggedInUser) return; let ownerId = resolveOwnerId(); if(ownerId === 'all') ownerId = loggedInUser.id;
             const totalAmount = parseFloat(document.getElementById('debtAmount').value);
-            const vehicleId = document.getElementById('debtVehicle').value;
-            
-            const data = {
-                ownerId: ownerId,
-                creditorName: document.getElementById('debtCreditor').value,
-                type: document.getElementById('debtType').value,
-                vehicle: vehicleId || "Non spécifié",
-                totalAmount: totalAmount,
-                paidAmount: 0,
-                remainingAmount: totalAmount,
-                date: document.getElementById('debtDate').value,
-                description: document.getElementById('debtDesc').value,
-                status: 'En cours',
-                timestamp: new Date().getTime()
-            };
+            const data = { ownerId: ownerId, creditorName: document.getElementById('debtCreditor').value, type: document.getElementById('debtType').value, vehicle: document.getElementById('debtVehicle').value || "Non spécifié", totalAmount: totalAmount, paidAmount: 0, remainingAmount: totalAmount, date: document.getElementById('debtDate').value, description: document.getElementById('debtDesc').value, status: 'En cours', timestamp: new Date().getTime() };
             await addDoc(getColRef('debts'), data); closeModal();
         };
 
-        window.submitPayDebt = async (e, debtId) => {
-            e.preventDefault(); if(!fbUser || !loggedInUser) return;
-            const debt = debts.find(d => d.id === debtId);
-            if(!debt) return;
-
+        window.submitPayDebt = async function(e, debtId) {
+            e.preventDefault(); if(!fbUser || !loggedInUser) return; const debt = debts.find(d => d.id === debtId); if(!debt) return;
             const paymentAmount = parseFloat(document.getElementById('payDebtAmount').value);
-            const paymentDate = document.getElementById('payDebtDate').value;
-            const method = document.getElementById('payDebtMethod').value;
-            const ref = document.getElementById('payDebtRef').value;
-            
             if(paymentAmount > debt.remainingAmount) return customAlert("Le paiement ne peut pas dépasser le reste à payer !", true);
-
-            const newPaid = debt.paidAmount + paymentAmount;
-            const newRemaining = debt.remainingAmount - paymentAmount;
-            const newStatus = newRemaining <= 0 ? 'Soldé' : 'En cours';
-
-            // 1. Mettre à jour la dette
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'debts', debtId), {
-                paidAmount: newPaid,
-                remainingAmount: newRemaining,
-                status: newStatus
-            });
-
-            // 2. CRÉER AUTOMATIQUEMENT LA DÉPENSE DANS LE GRAND LIVRE
-            const expenseData = {
-                ownerId: debt.ownerId,
-                date: paymentDate,
-                vehicle: debt.vehicle || "Non spécifié",
-                driverId: null,
-                type: "Remboursement Crédit",
-                amount: paymentAmount,
-                description: `Paiement partiel/total pour dette: ${debt.creditorName} (${debt.type})`,
-                paymentMethod: method,
-                paymentRef: ref,
-                timestamp: new Date().getTime()
-            };
-            await addDoc(getColRef('expenses'), expenseData);
-
-            closeModal();
-            customAlert("Paiement effectué et enregistré dans vos dépenses générales !");
+            const newPaid = debt.paidAmount + paymentAmount; const newRemaining = debt.remainingAmount - paymentAmount;
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'debts', debtId), { paidAmount: newPaid, remainingAmount: newRemaining, status: newRemaining <= 0 ? 'Soldé' : 'En cours' });
+            const expenseData = { ownerId: debt.ownerId, date: document.getElementById('payDebtDate').value, vehicle: debt.vehicle || "Non spécifié", driverId: null, type: "Remboursement Crédit", amount: paymentAmount, description: `Paiement pour dette: ${debt.creditorName}`, paymentMethod: document.getElementById('payDebtMethod').value, paymentRef: document.getElementById('payDebtRef').value, timestamp: new Date().getTime() };
+            await addDoc(getColRef('expenses'), expenseData); closeModal(); customAlert("Paiement effectué !");
         };
+        window.deleteDebt = function(id) { if(!fbUser) return; customConfirm("Supprimer cette dette ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'debts', id)); }); };
 
-        window.deleteDebt = (id) => { if(!fbUser) return; customConfirm("Supprimer cette dette ? (Attention: Les paiements déjà enregistrés dans les dépenses ne seront pas supprimés).", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'debts', id)); }); };
-
-
-        // FINANCES ET PIÈCES (Existantes)
-        window.saveRevenue = async (e) => {
+        window.saveRevenue = async function(e) {
             e.preventDefault(); if(!fbUser || !loggedInUser) return;
-            const plate = document.getElementById('revVehicle').value; 
-            let ownerId = null; if(plate) { const veh = vehicles.find(v => v.plate === plate); if(veh) ownerId = veh.ownerId; }
+            const plate = document.getElementById('revVehicle').value; let ownerId = null; if(plate) { const veh = vehicles.find(v => v.plate === plate); if(veh) ownerId = veh.ownerId; }
             const driverId = document.getElementById('revDriverId').value; if(!ownerId && driverId) { const drv = drivers.find(d => d.id === driverId); if(drv) ownerId = drv.ownerId; }
-            if(!ownerId) ownerId = (loggedInUser.role === 'admin') ? currentOwnerFilter : loggedInUser.id;
-            if(ownerId === 'all') return customAlert("Veuillez sélectionner un propriétaire, un véhicule ou un chauffeur.", true);
-
-            const method = document.getElementById('revMethod').value;
-            const ref = document.getElementById('revRef').value;
-
-            const data = { ownerId: ownerId, date: document.getElementById('revDate').value, vehicle: plate || "Non spécifié", driverId: driverId || null, expected: parseFloat(document.getElementById('revExpected').value) || 0, motif: document.getElementById('revMotif').value, brut: parseFloat(document.getElementById('revBrut').value), paymentMethod: method, paymentRef: ref, timestamp: new Date().getTime() };
+            if(!ownerId) ownerId = (loggedInUser.role === 'admin') ? currentOwnerFilter : loggedInUser.id; if(ownerId === 'all') return customAlert("Sélectionnez un propriétaire, véhicule ou chauffeur.", true);
+            const data = { ownerId: ownerId, date: document.getElementById('revDate').value, vehicle: plate || "Non spécifié", driverId: driverId || null, expected: parseFloat(document.getElementById('revExpected').value) || 0, motif: document.getElementById('revMotif').value, brut: parseFloat(document.getElementById('revBrut').value), paymentMethod: document.getElementById('revMethod').value, paymentRef: document.getElementById('revRef').value, timestamp: new Date().getTime() };
             await addDoc(getColRef('revenues'), data); closeModal();
         };
 
-        window.saveExpense = async (e) => {
+        window.saveExpense = async function(e) {
             e.preventDefault(); if(!fbUser || !loggedInUser) return;
-            const plate = document.getElementById('expVehicle').value;
-            let ownerId = null; if(plate) { const veh = vehicles.find(v => v.plate === plate); if(veh) ownerId = veh.ownerId; }
+            const plate = document.getElementById('expVehicle').value; let ownerId = null; if(plate) { const veh = vehicles.find(v => v.plate === plate); if(veh) ownerId = veh.ownerId; }
             const driverId = document.getElementById('expDriver').value; if(!ownerId && driverId) { const drv = drivers.find(d => d.id === driverId); if(drv) ownerId = drv.ownerId; }
-            if(!ownerId) ownerId = (loggedInUser.role === 'admin') ? currentOwnerFilter : loggedInUser.id;
-            if(ownerId === 'all') return customAlert("Sélectionnez un propriétaire, véhicule ou chauffeur.", true);
-
-            const method = document.getElementById('expMethod').value;
-            const ref = document.getElementById('expRef').value;
-
-            const expMileage = parseInt(document.getElementById('expMileage').value); const expNextMileage = parseInt(document.getElementById('expNextMileage').value);
-            if (plate && expMileage) {
-                const veh = vehicles.find(v => v.plate === plate);
-                if (veh) {
-                    let updateData = { currentMileage: expMileage }; if (expNextMileage) updateData.nextMaintenanceMileage = expNextMileage;
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', veh.id), updateData);
-                }
-            }
-
-            const data = { ownerId: ownerId, date: document.getElementById('expDate').value, vehicle: plate || "Non spécifié", driverId: driverId || null, type: document.getElementById('expType').value, amount: parseFloat(document.getElementById('expAmount').value), description: document.getElementById('expDesc').value, nextVisitDate: document.getElementById('expNextVisit').value || null, paymentMethod: method, paymentRef: ref, timestamp: new Date().getTime() };
+            if(!ownerId) ownerId = (loggedInUser.role === 'admin') ? currentOwnerFilter : loggedInUser.id; if(ownerId === 'all') return customAlert("Sélectionnez un propriétaire.", true);
+            const expMileage = parseInt(document.getElementById('expMileage').value), expNextMileage = parseInt(document.getElementById('expNextMileage').value);
+            if (plate && expMileage) { const veh = vehicles.find(v => v.plate === plate); if (veh) { let uData = { currentMileage: expMileage }; if (expNextMileage) uData.nextMaintenanceMileage = expNextMileage; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', veh.id), uData); } }
+            const data = { ownerId: ownerId, date: document.getElementById('expDate').value, vehicle: plate || "Non spécifié", driverId: driverId || null, type: document.getElementById('expType').value, amount: parseFloat(document.getElementById('expAmount').value), description: document.getElementById('expDesc').value, nextVisitDate: document.getElementById('expNextVisit').value || null, paymentMethod: document.getElementById('expMethod').value, paymentRef: document.getElementById('expRef').value, timestamp: new Date().getTime() };
             await addDoc(getColRef('expenses'), data); closeModal();
         };
+        window.deleteLedgerItem = function(type, id) { if(!fbUser || !loggedInUser) return; if(loggedInUser.role !== 'admin') return customAlert("Seul l'admin peut supprimer une écriture.", true); customConfirm("Supprimer cette opération définitivement ?", async () => { const col = type === 'rev' ? 'revenues' : 'expenses'; await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', col, id)); }); };
 
-        window.deleteLedgerItem = (type, id) => { 
-            if(!fbUser || !loggedInUser) return; 
-            if(loggedInUser.role !== 'admin') {
-                return customAlert("Seul l'administrateur principal est autorisé à supprimer une écriture comptable.", true);
-            }
-            customConfirm("Supprimer cette opération définitivement ?", async () => { 
-                const col = type === 'rev' ? 'revenues' : 'expenses'; 
-                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', col, id)); 
-            }); 
-        };
-
-        window.savePart = async (e) => {
-            e.preventDefault(); if(!fbUser || !loggedInUser) return;
-            let ownerId = (loggedInUser.role === 'admin') ? currentOwnerFilter : loggedInUser.id; if(ownerId === 'all') ownerId = loggedInUser.id; 
-            const price = parseFloat(document.getElementById('pPrice').value); const qty = parseInt(document.getElementById('pQty').value);
+        window.savePart = async function(e) {
+            e.preventDefault(); if(!fbUser || !loggedInUser) return; let ownerId = resolveOwnerId(); if(ownerId === 'all') ownerId = loggedInUser.id; 
+            const price = parseFloat(document.getElementById('pPrice').value), qty = parseInt(document.getElementById('pQty').value);
             const data = { ownerId: ownerId, date: document.getElementById('pDate').value, name: document.getElementById('pName').value, brand: document.getElementById('pBrand').value || '', supplier: document.getElementById('pSupplier').value, phone: document.getElementById('pPhone').value || '', location: document.getElementById('pLocation').value || '', price: price, qty: qty, total: price * qty, timestamp: new Date().getTime() };
             await addDoc(getColRef('parts'), data); closeModal();
         };
-        window.deletePart = (id) => { if(!fbUser) return; customConfirm("Supprimer cet enregistrement ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'parts', id)); }); };
-        window.filterParts = () => { const term = document.getElementById('searchPart').value.toLowerCase(); const rows = document.getElementById('partsTable').getElementsByTagName('tr'); for(let i=0; i<rows.length; i++) { const nameCol = rows[i].getElementsByTagName('td')[1]; if(nameCol) rows[i].style.display = (nameCol.textContent || nameCol.innerText).toLowerCase().indexOf(term) > -1 ? "" : "none"; } };
+        window.deletePart = function(id) { if(!fbUser) return; customConfirm("Supprimer cet enregistrement ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'parts', id)); }); };
+        window.filterParts = function() { const term = document.getElementById('searchPart').value.toLowerCase(); const rows = document.getElementById('partsTable').getElementsByTagName('tr'); for(let i=0; i<rows.length; i++) { const nameCol = rows[i].getElementsByTagName('td')[1]; if(nameCol) rows[i].style.display = (nameCol.textContent || nameCol.innerText).toLowerCase().indexOf(term) > -1 ? "" : "none"; } };
 
-        window.saveCatalog = async (e) => {
-            e.preventDefault(); if(!fbUser || !loggedInUser) return;
-            let ownerId = (loggedInUser.role === 'admin') ? currentOwnerFilter : loggedInUser.id; if(ownerId === 'all') ownerId = loggedInUser.id; 
+        window.saveCatalog = async function(e) {
+            e.preventDefault(); if(!fbUser || !loggedInUser) return; let ownerId = resolveOwnerId(); if(ownerId === 'all') ownerId = loggedInUser.id; 
             const data = { ownerId: ownerId, model: document.getElementById('cModel').value, part: document.getElementById('cPart').value, price: parseFloat(document.getElementById('cPrice').value), timestamp: new Date().getTime() };
             await addDoc(getColRef('catalogs'), data); closeModal();
         };
-        window.deleteCatalog = (id) => { if(!fbUser) return; customConfirm("Supprimer ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'catalogs', id)); }); };
-        window.filterCatalog = () => { const term = document.getElementById('searchCatalog').value.toLowerCase(); const rows = document.getElementById('catalogTable').getElementsByTagName('tr'); for(let i=0; i<rows.length; i++) { const text = rows[i].textContent || rows[i].innerText; rows[i].style.display = text.toLowerCase().indexOf(term) > -1 ? "" : "none"; } };
-
-
-        function getDocStatus(dateString) {
-            if (!dateString) return { state: 'empty', label: 'Non défini', bg: 'bg-gray-800', text: 'text-gray-500' };
-            const today = new Date(); today.setHours(0,0,0,0); const expDate = new Date(dateString);
-            const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
-            if (diffDays <= 0) return { state: 'expired', label: 'Expiré', bg: 'bg-red-500/20 border border-red-500/50', text: 'text-red-400 font-bold' };
-            if (diffDays <= 30) return { state: 'warning', label: `J-${diffDays}`, bg: 'bg-orange-500/20 border border-orange-500/50', text: 'text-orange-400 font-bold' };
-            return { state: 'valid', label: 'Valide', bg: 'bg-green-500/10 border border-green-500/30', text: 'text-green-400' };
-        }
+        window.deleteCatalog = function(id) { if(!fbUser) return; customConfirm("Supprimer ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'catalogs', id)); }); };
+        window.filterCatalog = function() { const term = document.getElementById('searchCatalog').value.toLowerCase(); const rows = document.getElementById('catalogTable').getElementsByTagName('tr'); for(let i=0; i<rows.length; i++) { const text = rows[i].textContent || rows[i].innerText; rows[i].style.display = text.toLowerCase().indexOf(term) > -1 ? "" : "none"; } };
 
         // ==========================================
-        // 8. MISE À JOUR DE L'INTERFACE
+        // 8. RENDER DE L'INTERFACE & CHARTS
         // ==========================================
-        function getOwnerName(id) { const u = users.find(u => u && u.id === id); return u ? u.name : 'Inconnu'; }
-        
-        function updateAdminDropdown() {
-            const select = document.getElementById('ownerFilter'); const currentVal = select.value;
-            select.innerHTML = `<option value="all">🌐 Tous les parcs</option>` + users.filter(u => u && u.role !== 'admin').map(o => `<option value="${o.id}">🏢 ${o.name}</option>`).join('');
-            if(users.find(u => u && u.id === currentVal)) select.value = currentVal;
-        }
-
-        function updateUI() {
+        window.updateUI = function() {
             if(!loggedInUser) return;
             const fVehicles = currentOwnerFilter === 'all' ? vehicles : vehicles.filter(v => v.ownerId === currentOwnerFilter);
             const fDrivers = currentOwnerFilter === 'all' ? drivers : drivers.filter(d => d.ownerId === currentOwnerFilter);
@@ -2501,13 +2078,11 @@
             document.getElementById('vehiclesGrid').innerHTML = fVehicles.map(v => {
                 const drv = fDrivers.find(d => d.id === v.assignedDriverId);
                 const drvName = drv ? `${drv.firstName} ${drv.lastName}` : 'Aucun chauffeur';
-                
                 let mechanicHtml = '';
                 if(v.status === 'maintenance' && v.mechanicId) {
                     const mech = mechanics.find(m => m.id === v.mechanicId);
                     if(mech) { mechanicHtml = `<div class="text-[11px] text-orange-400 mt-2 font-bold bg-orange-500/10 inline-block px-2 py-1 rounded-lg border border-orange-500/30"><i class="fas fa-wrench mr-1"></i> Chez : ${mech.name}</div>`; }
                 }
-
                 return `
                 <div class="glass rounded-2xl p-5 border border-gray-700/50 relative group transition-all">
                     <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -2530,7 +2105,7 @@
                 </div>`;
             }).join('');
 
-            // TABLE DES MÉCANOS / GARAGES
+            // MÉCANOS, IMMO, DETTES, DRIVERS, STAFF, LEDGER, PARTS, CATALOG, REPORTS (Code Original Intact)
             document.getElementById('mechanicsTable').innerHTML = fMechanics.sort((a,b) => b.timestamp - a.timestamp).map(m => `
                 <tr class="hover:bg-white/5 border-b border-gray-700/50">
                     <td class="px-6 py-4"><div class="font-bold text-white">${m.name}</div><div class="text-[10px] text-gray-500 uppercase mt-1">${getOwnerName(m.ownerId)}</div></td>
@@ -2541,108 +2116,40 @@
                 </tr>
             `).join('') || `<tr><td colspan="5" class="text-center py-6 text-gray-500">Aucun garage ou mécanicien enregistré.</td></tr>`;
 
-            // TABLE IMMOBILISATIONS
             let currentImmoCount = 0;
             document.getElementById('immobilizationsTable').innerHTML = fImmobilizations.sort((a,b) => b.timestamp - a.timestamp).map(imm => {
                 const veh = fVehicles.find(v => v.id === imm.vehicleId);
                 const mech = fMechanics.find(m => m.id === imm.mechanicId);
-                
                 let durationStr = '-';
-                if(imm.status === 'Terminé') {
-                    durationStr = `<span class="font-bold text-white">${imm.durationDays} jour(s)</span>`;
-                } else {
-                    currentImmoCount++;
-                    const entryD = new Date(imm.entryDate); const today = new Date();
-                    const diffDays = Math.ceil(Math.abs(today - entryD) / (1000 * 60 * 60 * 24));
-                    durationStr = `<span class="text-orange-400 italic">En cours (${diffDays} j)</span>`;
-                }
-
-                let actionBtn = imm.status === 'En cours' 
-                    ? `<button onclick="openModal('endImmobilization', '${imm.id}')" class="px-3 py-1 bg-green-500/20 text-green-400 border border-green-500/50 rounded hover:bg-green-500/30 text-xs font-bold mr-2"><i class="fas fa-check mr-1"></i>Sortir</button>`
-                    : `<span class="px-3 py-1 bg-gray-700/50 text-gray-400 border border-gray-600 rounded text-xs font-bold mr-2"><i class="fas fa-lock mr-1"></i>Clos</span>`;
-
-                return `
-                <tr class="hover:bg-white/5 border-b border-gray-700/50">
-                    <td class="px-6 py-4"><div class="font-bold text-white">${veh ? veh.brand : 'Supprimé'}</div><div class="text-[10px] text-gray-500 mt-1">${veh ? veh.plate : ''}</div></td>
-                    <td class="px-6 py-4"><div class="text-sm text-gray-300"><i class="fas fa-wrench mr-1 text-gray-500"></i> ${mech ? mech.name : 'Inconnu'}</div></td>
-                    <td class="px-6 py-4 text-sm text-orange-300">${imm.reason}</td>
-                    <td class="px-6 py-4 text-sm text-gray-400">${imm.entryDate}</td>
-                    <td class="px-6 py-4 text-sm text-gray-400">${imm.exitDate || '-'}</td>
-                    <td class="px-6 py-4">${durationStr}</td>
-                    <td class="px-6 py-4 text-right flex items-center justify-end">
-                        ${actionBtn}
-                        <button onclick="deleteImmobilization('${imm.id}')" class="text-red-400 hover:text-red-300 p-1"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>`;
+                if(imm.status === 'Terminé') { durationStr = `<span class="font-bold text-white">${imm.durationDays} jour(s)</span>`; } 
+                else { currentImmoCount++; const entryD = new Date(imm.entryDate); const diffDays = Math.ceil(Math.abs(new Date() - entryD) / (1000 * 60 * 60 * 24)); durationStr = `<span class="text-orange-400 italic">En cours (${diffDays} j)</span>`; }
+                let actionBtn = imm.status === 'En cours' ? `<button onclick="openModal('endImmobilization', '${imm.id}')" class="px-3 py-1 bg-green-500/20 text-green-400 border border-green-500/50 rounded hover:bg-green-500/30 text-xs font-bold mr-2"><i class="fas fa-check mr-1"></i>Sortir</button>` : `<span class="px-3 py-1 bg-gray-700/50 text-gray-400 border border-gray-600 rounded text-xs font-bold mr-2"><i class="fas fa-lock mr-1"></i>Clos</span>`;
+                return `<tr class="hover:bg-white/5 border-b border-gray-700/50"><td class="px-6 py-4"><div class="font-bold text-white">${veh ? veh.brand : 'Supprimé'}</div><div class="text-[10px] text-gray-500 mt-1">${veh ? veh.plate : ''}</div></td><td class="px-6 py-4"><div class="text-sm text-gray-300"><i class="fas fa-wrench mr-1 text-gray-500"></i> ${mech ? mech.name : 'Inconnu'}</div></td><td class="px-6 py-4 text-sm text-orange-300">${imm.reason}</td><td class="px-6 py-4 text-sm text-gray-400">${imm.entryDate}</td><td class="px-6 py-4 text-sm text-gray-400">${imm.exitDate || '-'}</td><td class="px-6 py-4">${durationStr}</td><td class="px-6 py-4 text-right flex items-center justify-end">${actionBtn}<button onclick="deleteImmobilization('${imm.id}')" class="text-red-400 hover:text-red-300 p-1"><i class="fas fa-trash"></i></button></td></tr>`;
             }).join('') || `<tr><td colspan="7" class="text-center py-6 text-gray-500">Aucun historique de garage.</td></tr>`;
             document.getElementById('immoCurrentCount').textContent = currentImmoCount;
 
-            // TABLE DETTES & CRÉDITS
             let debtTotal = 0; let debtPaid = 0; let debtRemaining = 0;
             document.getElementById('debtsTable').innerHTML = fDebts.sort((a,b) => b.timestamp - a.timestamp).map(d => {
                 debtTotal += d.totalAmount; debtPaid += d.paidAmount; debtRemaining += d.remainingAmount;
-                
                 let stClass = d.status === 'Soldé' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30';
                 let vehInfo = (d.vehicle && d.vehicle !== "Non spécifié") ? `<div class="text-[10px] text-yango-yellow mt-1"><i class="fas fa-car mr-1"></i> ${d.vehicle}</div>` : '';
-                
-                return `
-                <tr class="hover:bg-white/5 border-b border-gray-700/50 ${d.status === 'Soldé' ? 'opacity-60' : ''}">
-                    <td class="px-6 py-4">
-                        <div class="font-bold text-white">${d.creditorName}</div>
-                        <div class="text-[10px] text-gray-500 mt-1">${d.date}</div>
-                        ${vehInfo}
-                    </td>
-                    <td class="px-6 py-4 text-sm text-gray-300">${d.type}</td>
-                    <td class="px-6 py-4 text-sm text-gray-400 font-medium">${d.totalAmount.toLocaleString()} F</td>
-                    <td class="px-6 py-4 text-sm text-green-400 font-bold">${d.paidAmount.toLocaleString()} F</td>
-                    <td class="px-6 py-4 text-sm text-red-400 font-bold text-lg">${d.remainingAmount.toLocaleString()} F</td>
-                    <td class="px-6 py-4"><span class="px-2 py-1 rounded text-xs font-bold border ${stClass}">${d.status}</span></td>
-                    <td class="px-6 py-4 text-right whitespace-nowrap">
-                        ${d.remainingAmount > 0 ? `<button onclick="openModal('payDebt', '${d.id}')" class="px-3 py-1 bg-green-500/20 text-green-400 border border-green-500/50 rounded hover:bg-green-500/30 text-xs font-bold mr-2"><i class="fas fa-coins mr-1"></i>Payer</button>` : ''}
-                        <button onclick="deleteDebt('${d.id}')" class="text-red-400 hover:text-red-300 p-1"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>`;
+                return `<tr class="hover:bg-white/5 border-b border-gray-700/50 ${d.status === 'Soldé' ? 'opacity-60' : ''}"><td class="px-6 py-4"><div class="font-bold text-white">${d.creditorName}</div><div class="text-[10px] text-gray-500 mt-1">${d.date}</div>${vehInfo}</td><td class="px-6 py-4 text-sm text-gray-300">${d.type}</td><td class="px-6 py-4 text-sm text-gray-400 font-medium">${d.totalAmount.toLocaleString()} F</td><td class="px-6 py-4 text-sm text-green-400 font-bold">${d.paidAmount.toLocaleString()} F</td><td class="px-6 py-4 text-sm text-red-400 font-bold text-lg">${d.remainingAmount.toLocaleString()} F</td><td class="px-6 py-4"><span class="px-2 py-1 rounded text-xs font-bold border ${stClass}">${d.status}</span></td><td class="px-6 py-4 text-right whitespace-nowrap">${d.remainingAmount > 0 ? `<button onclick="openModal('payDebt', '${d.id}')" class="px-3 py-1 bg-green-500/20 text-green-400 border border-green-500/50 rounded hover:bg-green-500/30 text-xs font-bold mr-2"><i class="fas fa-coins mr-1"></i>Payer</button>` : ''}<button onclick="deleteDebt('${d.id}')" class="text-red-400 hover:text-red-300 p-1"><i class="fas fa-trash"></i></button></td></tr>`;
             }).join('') || `<tr><td colspan="7" class="text-center py-6 text-gray-500">Aucune dette enregistrée.</td></tr>`;
-            
-            document.getElementById('debtTotalAmount').textContent = debtTotal.toLocaleString() + ' F';
-            document.getElementById('debtPaidAmount').textContent = debtPaid.toLocaleString() + ' F';
-            document.getElementById('debtRemainingAmount').textContent = debtRemaining.toLocaleString() + ' F';
-
+            document.getElementById('debtTotalAmount').textContent = debtTotal.toLocaleString() + ' F'; document.getElementById('debtPaidAmount').textContent = debtPaid.toLocaleString() + ' F'; document.getElementById('debtRemainingAmount').textContent = debtRemaining.toLocaleString() + ' F';
 
             document.getElementById('driversTable').innerHTML = fDrivers.map(d => {
                 let drvRevs = fRevs.filter(r => r.driverId === d.id && r.expected > 0);
                 let tExpected = drvRevs.reduce((s, r) => s + r.expected, 0); let tPaid = drvRevs.reduce((s, r) => s + r.brut, 0);
                 let score = tExpected > 0 ? Math.min(100, Math.round((tPaid / tExpected) * 100)) : '-';
                 let scoreHtml = score === '-' ? '<span class="text-gray-500">N/A</span>' : `<span class="${score>=90?'text-green-400':(score>=70?'text-orange-400':'text-red-400')} font-bold">${score}%</span>`;
-
-                return `
-                <tr class="hover:bg-white/5 border-b border-gray-700/50">
-                    <td class="px-6 py-4"><div class="flex items-center gap-3"><img src="${d.photoProfile || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" loading="lazy" class="w-10 h-10 rounded-full object-cover border border-gray-600 bg-gray-800"><div><div class="font-bold text-white">${d.lastName} ${d.firstName}</div><div class="text-[10px] text-gray-500 uppercase mt-1">${getOwnerName(d.ownerId)}</div></div></div></td>
-                    <td class="px-6 py-4"><div class="flex items-center gap-2"><span class="text-sm text-gray-300">${d.phone}</span><a href="https://wa.me/${d.phone.replace(/\+/g,'')}?text=Bonjour ${d.firstName}, message concernant votre activité Yango." target="_blank" class="text-green-500 hover:text-green-400 text-lg transition-transform hover:scale-110"><i class="fab fa-whatsapp"></i></a></div></td>
-                    <td class="px-6 py-4 text-yango-yellow font-medium">${d.dailyExpected ? d.dailyExpected.toLocaleString() + ' F' : 'Non défini'}</td>
-                    <td class="px-6 py-4 text-center">${scoreHtml}</td>
-                    <td class="px-6 py-4 text-right whitespace-nowrap"><button onclick="openModal('viewDriverDocs', '${d.id}')" class="text-purple-400 hover:text-purple-300 mr-3" title="Voir les documents et photos"><i class="fas fa-folder-open"></i></button><button onclick="openModal('editDriver', '${d.id}')" class="text-blue-400 hover:text-blue-300 mr-3"><i class="fas fa-edit"></i></button><button onclick="deleteDriver('${d.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button></td>
-                </tr>`;
+                const photoSrc = d.photoProfile ? d.photoProfile : 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+                return `<tr class="hover:bg-white/5 border-b border-gray-700/50"><td class="px-6 py-4"><div class="flex items-center gap-3"><img src="${photoSrc}" loading="lazy" class="w-10 h-10 rounded-full object-cover border border-gray-600 bg-gray-800"><div><div class="font-bold text-white">${d.lastName} ${d.firstName}</div><div class="text-[10px] text-gray-500 uppercase mt-1">${getOwnerName(d.ownerId)}</div></div></div></td><td class="px-6 py-4"><div class="flex items-center gap-2"><span class="text-sm text-gray-300">${d.phone}</span><a href="https://wa.me/${d.phone.replace(/\+/g,'')}?text=Bonjour ${d.firstName}, message concernant votre activité Yango." target="_blank" class="text-green-500 hover:text-green-400 text-lg transition-transform hover:scale-110"><i class="fab fa-whatsapp"></i></a></div></td><td class="px-6 py-4 text-yango-yellow font-medium">${d.dailyExpected ? d.dailyExpected.toLocaleString() + ' F' : 'Non défini'}</td><td class="px-6 py-4 text-center">${scoreHtml}</td><td class="px-6 py-4 text-right whitespace-nowrap"><button onclick="openModal('viewDriverDocs', '${d.id}')" class="text-purple-400 hover:text-purple-300 mr-3" title="Voir les documents et photos"><i class="fas fa-folder-open"></i></button><button onclick="openModal('editDriver', '${d.id}')" class="text-blue-400 hover:text-blue-300 mr-3"><i class="fas fa-edit"></i></button><button onclick="deleteDriver('${d.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button></td></tr>`;
             }).join('') || `<tr><td colspan="5" class="text-center py-6 text-gray-500">Aucun chauffeur enregistré.</td></tr>`;
 
             document.getElementById('staffTable').innerHTML = fStaff.sort((a, b) => b.timestamp - a.timestamp).map(s => {
-                let statusHtml = '';
-                if(s.status === 'actif') statusHtml = '<span class="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-bold">Actif</span>';
-                else if(s.status === 'essai') statusHtml = '<span class="bg-orange-500/20 text-orange-400 px-3 py-1 rounded-full text-[10px] font-bold">En essai</span>';
-                else statusHtml = '<span class="bg-red-500/20 text-red-400 px-3 py-1 rounded-full text-[10px] font-bold">Contrat Terminé</span>';
-                let dateInfo = `<div class="text-[10px] text-gray-500 mt-1">Depuis le ${s.startDate}</div>`;
-                if(s.status === 'termine' && s.endDate) dateInfo = `<div class="text-[10px] text-red-400 mt-1">Fini le ${s.endDate}</div>`;
-                return `
-                <tr class="hover:bg-white/5 border-b border-gray-700/50 ${s.status === 'termine' ? 'opacity-50 grayscale' : ''}">
-                    <td class="px-6 py-4"><div class="font-bold text-white">${s.lastName} ${s.firstName}</div><div class="text-[10px] text-gray-500 uppercase mt-1">${getOwnerName(s.ownerId)}</div></td>
-                    <td class="px-6 py-4 text-purple-400 font-medium">${s.role}</td><td class="px-6 py-4 text-sm text-gray-300">${s.phone}</td>
-                    <td class="px-6 py-4 font-bold text-white">${s.salary.toLocaleString()} F ${dateInfo}</td><td class="px-6 py-4 text-center">${statusHtml}</td>
-                    <td class="px-6 py-4 text-right whitespace-nowrap">
-                        <button onclick="openModal('payStaffSalary', '${s.id}')" class="text-green-400 hover:text-green-300 mr-3" title="Payer le salaire"><i class="fas fa-money-check-alt"></i></button>
-                        <button onclick="openModal('editStaff', '${s.id}')" class="text-blue-400 hover:text-blue-300 mr-3"><i class="fas fa-edit"></i></button>
-                        <button onclick="deleteStaff('${s.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>`;
+                let statusHtml = s.status === 'actif' ? '<span class="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-bold">Actif</span>' : (s.status === 'essai' ? '<span class="bg-orange-500/20 text-orange-400 px-3 py-1 rounded-full text-[10px] font-bold">En essai</span>' : '<span class="bg-red-500/20 text-red-400 px-3 py-1 rounded-full text-[10px] font-bold">Contrat Terminé</span>');
+                let dateInfo = `<div class="text-[10px] text-gray-500 mt-1">Depuis le ${s.startDate}</div>`; if(s.status === 'termine' && s.endDate) dateInfo = `<div class="text-[10px] text-red-400 mt-1">Fini le ${s.endDate}</div>`;
+                return `<tr class="hover:bg-white/5 border-b border-gray-700/50 ${s.status === 'termine' ? 'opacity-50 grayscale' : ''}"><td class="px-6 py-4"><div class="font-bold text-white">${s.lastName} ${s.firstName}</div><div class="text-[10px] text-gray-500 uppercase mt-1">${getOwnerName(s.ownerId)}</div></td><td class="px-6 py-4 text-purple-400 font-medium">${s.role}</td><td class="px-6 py-4 text-sm text-gray-300">${s.phone}</td><td class="px-6 py-4 font-bold text-white">${s.salary.toLocaleString()} F ${dateInfo}</td><td class="px-6 py-4 text-center">${statusHtml}</td><td class="px-6 py-4 text-right whitespace-nowrap"><button onclick="openModal('payStaffSalary', '${s.id}')" class="text-green-400 hover:text-green-300 mr-3" title="Payer le salaire"><i class="fas fa-money-check-alt"></i></button><button onclick="openModal('editStaff', '${s.id}')" class="text-blue-400 hover:text-blue-300 mr-3"><i class="fas fa-edit"></i></button><button onclick="deleteStaff('${s.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button></td></tr>`;
             }).join('') || `<tr><td colspan="6" class="text-center py-6 text-gray-500">Aucun employé dans le personnel.</td></tr>`;
 
             let ledgerItems = [];
@@ -2652,67 +2159,25 @@
 
             document.getElementById('ledgerTable').innerHTML = ledgerItems.map(item => {
                 let drvName = '-'; if(item.driverId) { const d = fDrivers.find(d=>d.id===item.driverId); if(d) drvName = `${d.firstName} ${d.lastName}`; }
-                
-                // Verrouillage du bouton de suppression pour les non-admins
-                const deleteActionHtml = loggedInUser.role === 'admin' 
-                    ? `<button onclick="deleteLedgerItem('${item._type}', '${item.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>`
-                    : `<i class="fas fa-lock text-gray-600 cursor-not-allowed" title="Verrouillé (Admin uniquement)"></i>`;
-
-                let paymentInfo = '';
-                if(item.paymentMethod) {
-                    paymentInfo = `<div class="text-[10px] text-gray-400 mt-1"><i class="fas fa-wallet mr-1"></i> ${item.paymentMethod} ${item.paymentRef ? '('+item.paymentRef+')' : ''}</div>`;
-                }
-
+                const deleteActionHtml = loggedInUser.role === 'admin' ? `<button onclick="deleteLedgerItem('${item._type}', '${item.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>` : `<i class="fas fa-lock text-gray-600 cursor-not-allowed" title="Verrouillé (Admin uniquement)"></i>`;
+                let paymentInfo = item.paymentMethod ? `<div class="text-[10px] text-gray-400 mt-1"><i class="fas fa-wallet mr-1"></i> ${item.paymentMethod} ${item.paymentRef ? '('+item.paymentRef+')' : ''}</div>` : '';
                 if(item._type === 'rev') {
                     let diffHtml = '';
-                    if(item.driverId && item.expected > 0) {
-                        let diff = item.brut - item.expected;
-                        if(diff < 0) diffHtml = `<div class="text-[10px] text-red-400 font-bold mt-1">Dette: ${diff.toLocaleString()} F</div>`;
-                        else if (diff > 0) diffHtml = `<div class="text-[10px] text-blue-400 font-bold mt-1">Surplus: +${diff.toLocaleString()} F</div>`;
-                        else diffHtml = `<div class="text-[10px] text-green-400 font-bold mt-1">Complet</div>`;
-                    }
-                    return `
-                    <tr class="hover:bg-white/5 border-b border-gray-700/50 bg-green-900/5">
-                        <td class="px-4 py-3 text-sm">${item.date}</td><td class="px-4 py-3"><span class="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">${item.motif}</span></td>
-                        <td class="px-4 py-3 text-sm font-medium">${item.vehicle}</td><td class="px-4 py-3 text-sm text-gray-300">${drvName}</td>
-                        <td class="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell">${item.expected ? 'Attendu: ' + item.expected + ' F' : '-'}${paymentInfo}</td>
-                        <td class="px-4 py-3 text-sm text-right font-bold text-green-400">+${item.brut.toLocaleString()} F ${diffHtml}</td>
-                        <td class="px-4 py-3 text-center no-print">${deleteActionHtml}</td>
-                    </tr>`;
+                    if(item.driverId && item.expected > 0) { let diff = item.brut - item.expected; if(diff < 0) diffHtml = `<div class="text-[10px] text-red-400 font-bold mt-1">Dette: ${diff.toLocaleString()} F</div>`; else if (diff > 0) diffHtml = `<div class="text-[10px] text-blue-400 font-bold mt-1">Surplus: +${diff.toLocaleString()} F</div>`; else diffHtml = `<div class="text-[10px] text-green-400 font-bold mt-1">Complet</div>`; }
+                    return `<tr class="hover:bg-white/5 border-b border-gray-700/50 bg-green-900/5"><td class="px-4 py-3 text-sm">${item.date}</td><td class="px-4 py-3"><span class="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">${item.motif}</span></td><td class="px-4 py-3 text-sm font-medium">${item.vehicle}</td><td class="px-4 py-3 text-sm text-gray-300">${drvName}</td><td class="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell">${item.expected ? 'Attendu: ' + item.expected + ' F' : '-'}${paymentInfo}</td><td class="px-4 py-3 text-sm text-right font-bold text-green-400">+${item.brut.toLocaleString()} F ${diffHtml}</td><td class="px-4 py-3 text-center no-print">${deleteActionHtml}</td></tr>`;
                 } else {
                     let typeClass = 'bg-red-500/20 text-red-400';
                     if(item.type === 'Amende / Police') typeClass = 'bg-orange-500/20 text-orange-400';
                     if(item.type === 'Salaire / RH') typeClass = 'bg-purple-500/20 text-purple-400';
                     if(item.type === 'Remboursement Crédit') typeClass = 'bg-blue-500/20 text-blue-400';
                     let nextHtml = item.nextVisitDate ? `<div class="text-[10px] text-orange-300 mt-1">Planifié: ${item.nextVisitDate}</div>` : '';
-                    return `
-                    <tr class="hover:bg-white/5 border-b border-gray-700/50 bg-red-900/5">
-                        <td class="px-4 py-3 text-sm">${item.date}</td><td class="px-4 py-3"><span class="text-xs ${typeClass} px-2 py-1 rounded">${item.type}</span></td>
-                        <td class="px-4 py-3 text-sm font-medium">${item.vehicle}</td><td class="px-4 py-3 text-sm text-gray-300">${drvName}</td>
-                        <td class="px-4 py-3 text-xs text-gray-400 hidden lg:table-cell truncate max-w-[150px]">${item.description || '-'}${paymentInfo}</td>
-                        <td class="px-4 py-3 text-sm text-right font-bold text-red-400">-${item.amount.toLocaleString()} F ${nextHtml}</td>
-                        <td class="px-4 py-3 text-center no-print">${deleteActionHtml}</td>
-                    </tr>`;
+                    return `<tr class="hover:bg-white/5 border-b border-gray-700/50 bg-red-900/5"><td class="px-4 py-3 text-sm">${item.date}</td><td class="px-4 py-3"><span class="text-xs ${typeClass} px-2 py-1 rounded">${item.type}</span></td><td class="px-4 py-3 text-sm font-medium">${item.vehicle}</td><td class="px-4 py-3 text-sm text-gray-300">${drvName}</td><td class="px-4 py-3 text-xs text-gray-400 hidden lg:table-cell truncate max-w-[150px]">${item.description || '-'}${paymentInfo}</td><td class="px-4 py-3 text-sm text-right font-bold text-red-400">-${item.amount.toLocaleString()} F ${nextHtml}</td><td class="px-4 py-3 text-center no-print">${deleteActionHtml}</td></tr>`;
                 }
             }).join('') || `<tr><td colspan="7" class="text-center py-6 text-gray-500">Aucune opération trouvée.</td></tr>`;
 
-            document.getElementById('partsTable').innerHTML = fParts.sort((a,b) => b.timestamp - a.timestamp).map(p => `
-                <tr class="hover:bg-white/5 border-b border-gray-700/50">
-                    <td class="px-6 py-4 text-sm text-gray-400">${p.date}</td><td class="px-6 py-4"><div class="font-bold text-white">${p.name}</div>${p.brand ? `<div class="text-[10px] text-gray-500 uppercase mt-1">Marque: ${p.brand}</div>` : ''}</td>
-                    <td class="px-6 py-4"><div class="text-sm text-gray-300"><i class="fas fa-store text-gray-500 mr-2"></i>${p.supplier}</div>${p.phone ? `<div class="text-[10px] text-blue-400 mt-1"><i class="fas fa-phone-alt mr-1"></i> ${p.phone}</div>` : ''}</td>
-                    <td class="px-6 py-4 text-sm text-gray-400">${p.location ? `<i class="fas fa-map-marker-alt text-red-400 mr-1"></i> ${p.location}` : '-'}</td>
-                    <td class="px-6 py-4 text-blue-400 font-medium">${p.price.toLocaleString()} F</td><td class="px-6 py-4 text-center text-sm">${p.qty}</td><td class="px-6 py-4 font-bold text-white">${p.total.toLocaleString()} F</td>
-                    <td class="px-6 py-4 text-right"><button onclick="deletePart('${p.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button></td>
-                </tr>
-            `).join('') || `<tr><td colspan="8" class="text-center py-6 text-gray-500">Aucune pièce enregistrée.</td></tr>`;
+            document.getElementById('partsTable').innerHTML = fParts.sort((a,b) => b.timestamp - a.timestamp).map(p => `<tr class="hover:bg-white/5 border-b border-gray-700/50"><td class="px-6 py-4 text-sm text-gray-400">${p.date}</td><td class="px-6 py-4"><div class="font-bold text-white">${p.name}</div>${p.brand ? `<div class="text-[10px] text-gray-500 uppercase mt-1">Marque: ${p.brand}</div>` : ''}</td><td class="px-6 py-4"><div class="text-sm text-gray-300"><i class="fas fa-store text-gray-500 mr-2"></i>${p.supplier}</div>${p.phone ? `<div class="text-[10px] text-blue-400 mt-1"><i class="fas fa-phone-alt mr-1"></i> ${p.phone}</div>` : ''}</td><td class="px-6 py-4 text-sm text-gray-400">${p.location ? `<i class="fas fa-map-marker-alt text-red-400 mr-1"></i> ${p.location}` : '-'}</td><td class="px-6 py-4 text-blue-400 font-medium">${p.price.toLocaleString()} F</td><td class="px-6 py-4 text-center text-sm">${p.qty}</td><td class="px-6 py-4 font-bold text-white">${p.total.toLocaleString()} F</td><td class="px-6 py-4 text-right"><button onclick="deletePart('${p.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button></td></tr>`).join('') || `<tr><td colspan="8" class="text-center py-6 text-gray-500">Aucune pièce enregistrée.</td></tr>`;
 
-            document.getElementById('catalogTable').innerHTML = fCatalogs.sort((a,b) => b.timestamp - a.timestamp).map(c => `
-                <tr class="hover:bg-white/5 border-b border-gray-700/50">
-                    <td class="px-6 py-4"><span class="px-3 py-1 bg-gray-700 text-white rounded-full text-xs font-bold uppercase">${c.model}</span></td>
-                    <td class="px-6 py-4 text-xs text-gray-400">${c.part.split(' : ')[0] || '-'}</td><td class="px-6 py-4 font-bold text-white">${c.part.split(' : ')[1] || c.part}</td>
-                    <td class="px-6 py-4 text-blue-400 font-bold text-lg">${c.price.toLocaleString()} F</td><td class="px-6 py-4 text-right"><button onclick="deleteCatalog('${c.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button></td>
-                </tr>
-            `).join('') || `<tr><td colspan="5" class="text-center py-6 text-gray-500">Aucune estimation enregistrée. Cliquez sur Ajouter pour commencer.</td></tr>`;
+            document.getElementById('catalogTable').innerHTML = fCatalogs.sort((a,b) => b.timestamp - a.timestamp).map(c => `<tr class="hover:bg-white/5 border-b border-gray-700/50"><td class="px-6 py-4"><span class="px-3 py-1 bg-gray-700 text-white rounded-full text-xs font-bold uppercase">${c.model}</span></td><td class="px-6 py-4 text-xs text-gray-400">${c.part.split(' : ')[0] || '-'}</td><td class="px-6 py-4 font-bold text-white">${c.part.split(' : ')[1] || c.part}</td><td class="px-6 py-4 text-blue-400 font-bold text-lg">${c.price.toLocaleString()} F</td><td class="px-6 py-4 text-right"><button onclick="deleteCatalog('${c.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button></td></tr>`).join('') || `<tr><td colspan="5" class="text-center py-6 text-gray-500">Aucune estimation enregistrée. Cliquez sur Ajouter pour commencer.</td></tr>`;
 
             let totalFuel = fExps.filter(e => e.type === "Carburant").reduce((s, e) => s + e.amount, 0); let totalFines = fExps.filter(e => e.type === "Amende / Police").reduce((s, e) => s + e.amount, 0); let totalSalaries = fExps.filter(e => e.type === "Salaire / RH").reduce((s, e) => s + e.amount, 0);
             document.getElementById('repFuel').textContent = totalFuel.toLocaleString() + ' F'; document.getElementById('repFines').textContent = totalFines.toLocaleString() + ' F'; document.getElementById('repSalaries').textContent = totalSalaries.toLocaleString() + ' F';
@@ -2752,20 +2217,17 @@
                     return `<tr class="border-b border-gray-700/50"><td class="px-6 py-4 text-sm font-mono text-gray-400">${displayId}</td><td class="px-6 py-4 font-bold text-white">${u.name}</td><td class="px-6 py-4">${roleBadge}</td><td class="px-6 py-4 text-right whitespace-nowrap">${editBtn}${deleteBtn}</td></tr>`;
                 }).join('');
             }
-        }
+        };
 
-        // ==========================================
-        // 9. CHART.JS (ANALYTICS)
-        // ==========================================
-        function initCharts() {
+        window.initCharts = function() {
             const ctx1 = document.getElementById('financeChart').getContext('2d'); chartFinance = new Chart(ctx1, { type: 'bar', data: { labels: ['Recettes Brutes', 'Dépenses Totales'], datasets: [] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' } } } } });
             const ctx2 = document.getElementById('fleetChart').getContext('2d'); chartFleet = new Chart(ctx2, { type: 'doughnut', data: { labels: ['Actifs', 'Maintenance', 'Inactifs'], datasets: [] }, options: { responsive: true, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { color: '#fff' } } } } });
             const ctx3 = document.getElementById('topVehiclesChart').getContext('2d'); chartTopVehicles = new Chart(ctx3, { type: 'bar', data: { labels: [], datasets: [] }, options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.05)' } } } } });
             const ctx4 = document.getElementById('expensesChart').getContext('2d'); chartExpenses = new Chart(ctx4, { type: 'pie', data: { labels: [], datasets: [] }, options: { responsive: true, plugins: { legend: { position: 'right', labels: { color: '#fff' } } } } });
-            updateCharts();
-        }
+            window.updateCharts();
+        };
 
-        function updateCharts() {
+        window.updateCharts = function() {
             if(!chartFinance) return;
             const fVehicles = currentOwnerFilter === 'all' ? vehicles : vehicles.filter(v => v.ownerId === currentOwnerFilter);
             const fRevs = currentOwnerFilter === 'all' ? revenues : revenues.filter(r => r.ownerId === currentOwnerFilter);
@@ -2790,7 +2252,218 @@
             const dynamicColors = expLabels.map((_, i) => colors[i % colors.length]);
             
             chartExpenses.data = { labels: expLabels.length ? expLabels : ['Aucune dépense'], datasets: [{ data: expData.length ? expData : [1], backgroundColor: expData.length ? dynamicColors : ['#374151'], borderWidth: 0 }] }; chartExpenses.update();
+        };
+
+        // ==========================================
+        // 9. EXPORTS
+        // ==========================================
+        window.exportToCSV = function() {
+            if(!fbUser) return;
+            const fRevs = currentOwnerFilter === 'all' ? revenues : revenues.filter(r => r.ownerId === currentOwnerFilter);
+            const fExps = currentOwnerFilter === 'all' ? expenses : expenses.filter(e => e.ownerId === currentOwnerFilter);
+            let items = [];
+            
+            if(currentLedgerTab === 'all' || currentLedgerTab === 'revenues') fRevs.forEach(r => items.push({...r, _type: 'rev'}));
+            if(currentLedgerTab === 'all' || currentLedgerTab === 'expenses') fExps.forEach(e => items.push({...e, _type: 'exp'}));
+            items.sort((a,b) => b.timestamp - a.timestamp);
+
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
+            csvContent += "Date;Type / Motif;Vehicule;Chauffeur/Agent;Details;Impact Net (FCFA)\n";
+
+            items.forEach(item => {
+                let date = item.date || "-";
+                let motif = item._type === 'rev' ? (item.motif || "-") : (item.type || "-");
+                let veh = item.vehicle || "-";
+                let driverName = "-";
+                if(item.driverId) { const d = drivers.find(drv => drv.id === item.driverId); if(d) driverName = `${d.firstName} ${d.lastName}`; }
+                let details = item._type === 'rev' ? (item.expected ? `Attendu: ${item.expected}` : '-') : (item.description || '-');
+                if (item.paymentMethod) details += ` | Paiement: ${item.paymentMethod}` + (item.paymentRef ? ` (${item.paymentRef})` : '');
+                let impact = item._type === 'rev' ? `+${item.brut}` : `-${item.amount}`;
+                let row = [date, motif, veh, driverName, details, impact].map(val => `"${String(val).replace(/"/g, '""')}"`).join(";");
+                csvContent += row + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent); const link = document.createElement("a");
+            link.setAttribute("href", encodedUri); link.setAttribute("download", `Yango_Finances_${new Date().toLocaleDateString('fr-FR').replace(/\//g,'-')}.csv`);
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        };
+
+        window.exportToPDF = function() {
+            const element = document.getElementById('ledgerExportArea');
+            const printHeader = element.querySelector('h3.print-only');
+            const originalBg = element.style.background;
+            element.style.background = '#ffffff'; element.style.color = '#000000';
+            if(printHeader) printHeader.style.display = 'block';
+            const noPrintElements = element.querySelectorAll('.no-print');
+            noPrintElements.forEach(el => el.style.display = 'none');
+
+            const opt = { margin: 10, filename: `Yango_Finances_${new Date().toLocaleDateString('fr-FR').replace(/\//g,'-')}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } };
+            const btnText = document.querySelector('button[title="Exporter PDF"]').innerHTML;
+            document.querySelector('button[title="Exporter PDF"]').innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Génération...';
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                element.style.background = originalBg; element.style.color = '';
+                if(printHeader) printHeader.style.display = 'none';
+                noPrintElements.forEach(el => el.style.display = '');
+                document.querySelector('button[title="Exporter PDF"]').innerHTML = btnText;
+            });
+        };
+
+        window.exportReportsCSV = function() {
+            if(!fbUser) return;
+            const fExps = currentOwnerFilter === 'all' ? expenses : expenses.filter(e => e.ownerId === currentOwnerFilter);
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
+            csvContent += "Type;Date;Bénéficiaire / Chauffeur;Montant (FCFA);Motif / Détails\n";
+
+            fExps.filter(e => e.type === "Amende / Police").forEach(item => {
+                let dName = "-"; if(item.driverId) { const d = drivers.find(drv => drv.id === item.driverId); if(d) dName = `${d.firstName} ${d.lastName}`; }
+                let row = ["AMENDE", item.date || "-", dName, `-${item.amount}`, item.description || "-"].map(val => `"${String(val).replace(/"/g, '""')}"`).join(";");
+                csvContent += row + "\n";
+            });
+
+            fExps.filter(e => e.type === "Salaire / RH").forEach(item => {
+                let dName = "-"; if(item.driverId) { const d = drivers.find(drv => drv.id === item.driverId); if(d) dName = `${d.firstName} ${d.lastName}`; }
+                let row = ["SALAIRE", item.date || "-", dName, `-${item.amount}`, item.description || "-"].map(val => `"${String(val).replace(/"/g, '""')}"`).join(";");
+                csvContent += row + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent); const link = document.createElement("a");
+            link.setAttribute("href", encodedUri); link.setAttribute("download", `Yango_RH_Amendes_${new Date().toLocaleDateString('fr-FR').replace(/\//g,'-')}.csv`);
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        };
+
+        window.exportReportsPDF = function() {
+            const element = document.getElementById('reportsArea');
+            const printHeader = element.querySelector('h3.print-only');
+            const originalBg = element.style.background;
+            element.style.background = '#ffffff'; element.style.color = '#000000';
+            if(printHeader) printHeader.style.display = 'block';
+            
+            const opt = { margin: 10, filename: `Yango_RH_Amendes_${new Date().toLocaleDateString('fr-FR').replace(/\//g,'-')}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } };
+            const btnHTML = document.querySelector('button[title="Exporter PDF"]').innerHTML;
+            document.querySelector('button[title="Exporter PDF"]').innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Génération...';
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                element.style.background = originalBg; element.style.color = '';
+                if(printHeader) printHeader.style.display = 'none';
+                document.querySelector('button[title="Exporter PDF"]').innerHTML = btnHTML;
+            });
+        };
+
+
+        // ==========================================
+        // 10. AUTH & BOOTSTRAP (LISTENERS)
+        // ==========================================
+
+        window.toggleSignup = function() {
+            isLoginMode = !isLoginMode;
+            document.getElementById('loginBtnText').textContent = isLoginMode ? 'Se connecter' : 'Créer le compte';
+            document.getElementById('toggleAuthBtn').textContent = isLoginMode ? 'Première connexion ? Créer mon compte Admin' : "J'ai déjà un compte, me connecter";
+            document.getElementById('loginError').classList.add('hidden');
+        };
+
+        window.handleLogin = async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const pass = document.getElementById('loginPass').value.trim();
+            const errorDiv = document.getElementById('loginError');
+            const btnText = document.getElementById('loginBtnText');
+
+            errorDiv.classList.add('hidden');
+            btnText.innerHTML = '<div class="loader border-black border-t-transparent"></div>';
+
+            try {
+                if (isLoginMode) { await signInWithEmailAndPassword(auth, email, pass); } 
+                else { await createUserWithEmailAndPassword(auth, email, pass); }
+            } catch (error) {
+                console.error("Auth Error:", error);
+                btnText.textContent = isLoginMode ? 'Se connecter' : 'Créer le compte';
+                
+                if(error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+                    errorDiv.textContent = "Email ou mot de passe incorrect.";
+                } else if (error.code === 'auth/email-already-in-use') {
+                    errorDiv.textContent = "Ce compte existe déjà. Veuillez vous connecter.";
+                } else if (error.code === 'auth/weak-password') {
+                    errorDiv.textContent = "Le mot de passe doit faire au moins 6 caractères.";
+                } else {
+                    errorDiv.textContent = "Erreur : " + error.message;
+                }
+                errorDiv.classList.remove('hidden');
+            }
+        };
+
+        window.logout = async function() {
+            await signOut(auth);
+            loggedInUser = null;
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('loginForm').reset();
+            document.getElementById('loginBtnText').textContent = 'Se connecter';
+        };
+
+        function launchApp() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            const adminContainer = document.getElementById('adminFilterContainer');
+            const adminNavBtn = document.getElementById('adminNavBtn');
+            document.getElementById('headerUserName').innerHTML = `Bienvenue, <span class="text-yango-yellow">${loggedInUser.name}</span>`;
+            document.getElementById('sidebarRoleLabel').textContent = loggedInUser.role === 'admin' ? 'Super Administrateur' : 'Propriétaire de Parc';
+
+            if(loggedInUser.role === 'admin') {
+                adminContainer.classList.remove('hidden'); adminContainer.classList.add('flex'); adminNavBtn.classList.remove('hidden');
+                window.updateAdminDropdown(); 
+                currentOwnerFilter = document.getElementById('ownerFilter') ? document.getElementById('ownerFilter').value : 'all';
+            } else {
+                adminContainer.classList.add('hidden'); adminContainer.classList.remove('flex'); adminNavBtn.classList.add('hidden');
+                currentOwnerFilter = loggedInUser.id; 
+            }
+            window.showSection('dashboard'); 
+            updateTitle(); 
+            window.updateUI();
+            if(!chartFinance) window.initCharts(); else window.updateCharts();
         }
+
+        function setupListeners() {
+            if (!fbUser) return;
+
+            onSnapshot(getColRef('users'), async (snapshot) => {
+                users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                loggedInUser = users.find(u => u && (u.id === fbUser.uid || (u.email && u.email === fbUser.email)));
+                
+                if (!loggedInUser && fbUser.email.toLowerCase().includes('admin')) {
+                    const newAdmin = { email: fbUser.email, role: 'admin', name: 'Administrateur Principal' };
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', fbUser.uid), newAdmin);
+                    loggedInUser = { id: fbUser.uid, ...newAdmin };
+                }
+
+                if (loggedInUser) {
+                    if (loggedInUser.role === 'admin') window.updateAdminDropdown();
+                    window.updateUI();
+                    if(document.getElementById('mainApp').classList.contains('hidden')) { launchApp(); }
+                } else {
+                    window.logout();
+                    window.customAlert("Accès refusé : Votre compte n'est pas autorisé dans cette base de données.", true);
+                }
+            }, console.error);
+
+            onSnapshot(getColRef('vehicles'), (snapshot) => { vehicles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) { window.updateUI(); window.updateCharts(); } }, console.error);
+            onSnapshot(getColRef('drivers'), (snapshot) => { drivers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) window.updateUI(); }, console.error);
+            onSnapshot(getColRef('revenues'), (snapshot) => { revenues = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) { window.updateUI(); window.updateCharts(); } }, console.error);
+            onSnapshot(getColRef('expenses'), (snapshot) => { expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) { window.updateUI(); window.updateCharts(); } }, console.error);
+            onSnapshot(getColRef('parts'), (snapshot) => { parts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) window.updateUI(); }, console.error); 
+            onSnapshot(getColRef('staff'), (snapshot) => { staff = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) window.updateUI(); }, console.error); 
+            onSnapshot(getColRef('catalogs'), (snapshot) => { catalogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) window.updateUI(); }, console.error); 
+            onSnapshot(getColRef('mechanics'), (snapshot) => { mechanics = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) window.updateUI(); }, console.error); 
+            onSnapshot(getColRef('immobilizations'), (snapshot) => { immobilizations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) window.updateUI(); }, console.error); 
+            onSnapshot(getColRef('debts'), (snapshot) => { debts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); if(loggedInUser) window.updateUI(); }, console.error); 
+        }
+
+        onAuthStateChanged(auth, (user) => { 
+            fbUser = user; 
+            if (user) { setupListeners(); } 
+            else { document.getElementById('mainApp').classList.add('hidden'); document.getElementById('loginScreen').classList.remove('hidden'); }
+        });
     </script>
 </body>
 </html>
