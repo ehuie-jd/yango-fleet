@@ -1199,6 +1199,7 @@
                 let driverName = "-";
                 if(item.driverId) { const d = drivers.find(drv => drv.id === item.driverId); if(d) driverName = `${d.firstName} ${d.lastName}`; }
                 let details = item._type === 'rev' ? (item.expected ? `Attendu: ${item.expected}` : '-') : (item.description || '-');
+                if (item.paymentMethod) details += ` | Paiement: ${item.paymentMethod}` + (item.paymentRef ? ` (${item.paymentRef})` : '');
                 let impact = item._type === 'rev' ? `+${item.brut}` : `-${item.amount}`;
                 let row = [date, motif, veh, driverName, details, impact].map(val => `"${String(val).replace(/"/g, '""')}"`).join(";");
                 csvContent += row + "\n";
@@ -1365,6 +1366,12 @@
                         </div>
 
                         <div><label class="text-xs text-gray-400">Montant Réellement Encaissé (FCFA)</label><input type="number" id="revBrut" required placeholder="Ex: 35000" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-xl text-green-400 font-bold"></div>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="text-xs text-gray-400">Moyen de paiement</label><select id="revMethod" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"><option value="Espèces">Espèces</option><option value="Mobile Money">Mobile Money (Wave, Orange...)</option><option value="Virement">Virement Bancaire</option><option value="Chèque">Chèque</option></select></div>
+                            <div><label class="text-xs text-gray-400">Référence (Optionnel)</label><input type="text" id="revRef" placeholder="ID Transaction..." class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        </div>
+
                         <button type="submit" class="w-full py-3 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 mt-4">Enregistrer Recette</button>
                     </form>
                 `;
@@ -1417,6 +1424,12 @@
                         </div>
                         
                         <div><label class="text-xs text-gray-400">Montant (FCFA)</label><input type="number" id="expAmount" required placeholder="Ex: 25000" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-red-400 font-bold"></div>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="text-xs text-gray-400">Moyen de paiement</label><select id="expMethod" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"><option value="Espèces">Espèces</option><option value="Mobile Money">Mobile Money</option><option value="Virement">Virement Bancaire</option><option value="Chèque">Chèque</option></select></div>
+                            <div><label class="text-xs text-gray-400">Référence (Optionnel)</label><input type="text" id="expRef" placeholder="ID Transaction..." class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        </div>
+
                         <div><label class="text-xs text-gray-400">Description / Note</label><input type="text" id="expDesc" placeholder="Détails supplémentaires" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
                         
                         <div class="border-t border-gray-700 pt-3 mt-2 space-y-3">
@@ -1525,6 +1538,13 @@
                             </select>
                         </div>
                         <div>
+                            <label class="text-xs text-gray-400">Véhicule concerné (Optionnel)</label>
+                            <select id="debtVehicle" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
+                                <option value="">Aucun véhicule spécifique</option>
+                                ${vehOptsPlate}
+                            </select>
+                        </div>
+                        <div>
                             <label class="text-xs text-gray-400">Montant Total de la Dette (FCFA)</label>
                             <input type="number" id="debtAmount" required placeholder="Ex: 150000" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-xl text-red-400 font-bold">
                         </div>
@@ -1559,6 +1579,10 @@
                             <label class="text-xs text-gray-400">Montant de ce paiement (FCFA)</label>
                             <input type="number" id="payDebtAmount" required max="${debt.remainingAmount}" placeholder="Ex: 50000" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-xl text-green-400 font-bold">
                         </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="text-xs text-gray-400">Moyen de paiement</label><select id="payDebtMethod" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"><option value="Espèces">Espèces</option><option value="Mobile Money">Mobile Money</option><option value="Virement">Virement Bancaire</option><option value="Chèque">Chèque</option></select></div>
+                            <div><label class="text-xs text-gray-400">Référence (Optionnel)</label><input type="text" id="payDebtRef" placeholder="ID Transaction..." class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
+                        </div>
                         <div class="bg-green-500/10 p-3 border border-green-500/30 rounded-lg text-xs text-green-400 mt-2">
                             <i class="fas fa-info-circle mr-1"></i> Ce montant sera automatiquement enregistré dans vos dépenses (Grand Livre).
                         </div>
@@ -1582,6 +1606,10 @@
                         <div>
                             <label class="text-xs text-gray-400">Montant versé (FCFA)</label>
                             <input type="number" id="paySalAmount" required value="${s.salary}" placeholder="Ex: ${s.salary}" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-xl text-green-400 font-bold">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="text-xs text-gray-400">Moyen de paiement</label><select id="paySalMethod" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"><option value="Espèces">Espèces</option><option value="Mobile Money">Mobile Money</option><option value="Virement">Virement Bancaire</option><option value="Chèque">Chèque</option></select></div>
+                            <div><label class="text-xs text-gray-400">Référence (Optionnel)</label><input type="text" id="paySalRef" placeholder="ID Transaction..." class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
                         </div>
                         <div>
                             <label class="text-xs text-gray-400">Période ou Note (Ex: Mai 2026)</label>
@@ -2083,6 +2111,8 @@
             const amount = parseFloat(document.getElementById('paySalAmount').value);
             const date = document.getElementById('paySalDate').value;
             const note = document.getElementById('paySalNote').value;
+            const method = document.getElementById('paySalMethod').value;
+            const ref = document.getElementById('paySalRef').value;
 
             const expenseData = {
                 ownerId: s.ownerId, 
@@ -2092,6 +2122,8 @@
                 type: "Salaire / RH",
                 amount: amount,
                 description: `Paiement Salaire: ${s.firstName} ${s.lastName} - ${note}`,
+                paymentMethod: method,
+                paymentRef: ref,
                 timestamp: new Date().getTime()
             };
             await addDoc(getColRef('expenses'), expenseData);
@@ -2179,11 +2211,13 @@
             if(ownerId === 'all') ownerId = loggedInUser.id;
             
             const totalAmount = parseFloat(document.getElementById('debtAmount').value);
+            const vehicleId = document.getElementById('debtVehicle').value;
             
             const data = {
                 ownerId: ownerId,
                 creditorName: document.getElementById('debtCreditor').value,
                 type: document.getElementById('debtType').value,
+                vehicle: vehicleId || "Non spécifié",
                 totalAmount: totalAmount,
                 paidAmount: 0,
                 remainingAmount: totalAmount,
@@ -2202,6 +2236,8 @@
 
             const paymentAmount = parseFloat(document.getElementById('payDebtAmount').value);
             const paymentDate = document.getElementById('payDebtDate').value;
+            const method = document.getElementById('payDebtMethod').value;
+            const ref = document.getElementById('payDebtRef').value;
             
             if(paymentAmount > debt.remainingAmount) return customAlert("Le paiement ne peut pas dépasser le reste à payer !", true);
 
@@ -2220,11 +2256,13 @@
             const expenseData = {
                 ownerId: debt.ownerId,
                 date: paymentDate,
-                vehicle: "Non spécifié",
+                vehicle: debt.vehicle || "Non spécifié",
                 driverId: null,
                 type: "Remboursement Crédit",
                 amount: paymentAmount,
                 description: `Paiement partiel/total pour dette: ${debt.creditorName} (${debt.type})`,
+                paymentMethod: method,
+                paymentRef: ref,
                 timestamp: new Date().getTime()
             };
             await addDoc(getColRef('expenses'), expenseData);
@@ -2245,7 +2283,10 @@
             if(!ownerId) ownerId = (loggedInUser.role === 'admin') ? currentOwnerFilter : loggedInUser.id;
             if(ownerId === 'all') return customAlert("Veuillez sélectionner un propriétaire, un véhicule ou un chauffeur.", true);
 
-            const data = { ownerId: ownerId, date: document.getElementById('revDate').value, vehicle: plate || "Non spécifié", driverId: driverId || null, expected: parseFloat(document.getElementById('revExpected').value) || 0, motif: document.getElementById('revMotif').value, brut: parseFloat(document.getElementById('revBrut').value), timestamp: new Date().getTime() };
+            const method = document.getElementById('revMethod').value;
+            const ref = document.getElementById('revRef').value;
+
+            const data = { ownerId: ownerId, date: document.getElementById('revDate').value, vehicle: plate || "Non spécifié", driverId: driverId || null, expected: parseFloat(document.getElementById('revExpected').value) || 0, motif: document.getElementById('revMotif').value, brut: parseFloat(document.getElementById('revBrut').value), paymentMethod: method, paymentRef: ref, timestamp: new Date().getTime() };
             await addDoc(getColRef('revenues'), data); closeModal();
         };
 
@@ -2257,6 +2298,9 @@
             if(!ownerId) ownerId = (loggedInUser.role === 'admin') ? currentOwnerFilter : loggedInUser.id;
             if(ownerId === 'all') return customAlert("Sélectionnez un propriétaire, véhicule ou chauffeur.", true);
 
+            const method = document.getElementById('expMethod').value;
+            const ref = document.getElementById('expRef').value;
+
             const expMileage = parseInt(document.getElementById('expMileage').value); const expNextMileage = parseInt(document.getElementById('expNextMileage').value);
             if (plate && expMileage) {
                 const veh = vehicles.find(v => v.plate === plate);
@@ -2266,7 +2310,7 @@
                 }
             }
 
-            const data = { ownerId: ownerId, date: document.getElementById('expDate').value, vehicle: plate || "Non spécifié", driverId: driverId || null, type: document.getElementById('expType').value, amount: parseFloat(document.getElementById('expAmount').value), description: document.getElementById('expDesc').value, nextVisitDate: document.getElementById('expNextVisit').value || null, timestamp: new Date().getTime() };
+            const data = { ownerId: ownerId, date: document.getElementById('expDate').value, vehicle: plate || "Non spécifié", driverId: driverId || null, type: document.getElementById('expType').value, amount: parseFloat(document.getElementById('expAmount').value), description: document.getElementById('expDesc').value, nextVisitDate: document.getElementById('expNextVisit').value || null, paymentMethod: method, paymentRef: ref, timestamp: new Date().getTime() };
             await addDoc(getColRef('expenses'), data); closeModal();
         };
 
@@ -2502,12 +2546,14 @@
                 debtTotal += d.totalAmount; debtPaid += d.paidAmount; debtRemaining += d.remainingAmount;
                 
                 let stClass = d.status === 'Soldé' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30';
+                let vehInfo = (d.vehicle && d.vehicle !== "Non spécifié") ? `<div class="text-[10px] text-yango-yellow mt-1"><i class="fas fa-car mr-1"></i> ${d.vehicle}</div>` : '';
                 
                 return `
                 <tr class="hover:bg-white/5 border-b border-gray-700/50 ${d.status === 'Soldé' ? 'opacity-60' : ''}">
                     <td class="px-6 py-4">
                         <div class="font-bold text-white">${d.creditorName}</div>
                         <div class="text-[10px] text-gray-500 mt-1">${d.date}</div>
+                        ${vehInfo}
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-300">${d.type}</td>
                     <td class="px-6 py-4 text-sm text-gray-400 font-medium">${d.totalAmount.toLocaleString()} F</td>
@@ -2575,6 +2621,11 @@
                     ? `<button onclick="deleteLedgerItem('${item._type}', '${item.id}')" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>`
                     : `<i class="fas fa-lock text-gray-600 cursor-not-allowed" title="Verrouillé (Admin uniquement)"></i>`;
 
+                let paymentInfo = '';
+                if(item.paymentMethod) {
+                    paymentInfo = `<div class="text-[10px] text-gray-400 mt-1"><i class="fas fa-wallet mr-1"></i> ${item.paymentMethod} ${item.paymentRef ? '('+item.paymentRef+')' : ''}</div>`;
+                }
+
                 if(item._type === 'rev') {
                     let diffHtml = '';
                     if(item.driverId && item.expected > 0) {
@@ -2587,7 +2638,7 @@
                     <tr class="hover:bg-white/5 border-b border-gray-700/50 bg-green-900/5">
                         <td class="px-4 py-3 text-sm">${item.date}</td><td class="px-4 py-3"><span class="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">${item.motif}</span></td>
                         <td class="px-4 py-3 text-sm font-medium">${item.vehicle}</td><td class="px-4 py-3 text-sm text-gray-300">${drvName}</td>
-                        <td class="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell">${item.expected ? 'Attendu: ' + item.expected + ' F' : '-'}</td>
+                        <td class="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell">${item.expected ? 'Attendu: ' + item.expected + ' F' : '-'}${paymentInfo}</td>
                         <td class="px-4 py-3 text-sm text-right font-bold text-green-400">+${item.brut.toLocaleString()} F ${diffHtml}</td>
                         <td class="px-4 py-3 text-center no-print">${deleteActionHtml}</td>
                     </tr>`;
@@ -2601,7 +2652,7 @@
                     <tr class="hover:bg-white/5 border-b border-gray-700/50 bg-red-900/5">
                         <td class="px-4 py-3 text-sm">${item.date}</td><td class="px-4 py-3"><span class="text-xs ${typeClass} px-2 py-1 rounded">${item.type}</span></td>
                         <td class="px-4 py-3 text-sm font-medium">${item.vehicle}</td><td class="px-4 py-3 text-sm text-gray-300">${drvName}</td>
-                        <td class="px-4 py-3 text-xs text-gray-400 hidden lg:table-cell truncate max-w-[150px]">${item.description || '-'}</td>
+                        <td class="px-4 py-3 text-xs text-gray-400 hidden lg:table-cell truncate max-w-[150px]">${item.description || '-'}${paymentInfo}</td>
                         <td class="px-4 py-3 text-sm text-right font-bold text-red-400">-${item.amount.toLocaleString()} F ${nextHtml}</td>
                         <td class="px-4 py-3 text-center no-print">${deleteActionHtml}</td>
                     </tr>`;
