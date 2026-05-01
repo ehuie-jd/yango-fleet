@@ -987,6 +987,28 @@
             document.getElementById('btnConfirm').onclick = () => { document.body.removeChild(overlay); callback(); };
         };
 
+        window.downloadDriverDoc = function(driverId, docType) {
+            const driver = drivers.find(d => d.id === driverId);
+            if (!driver) return;
+            
+            let base64Data, filenamePrefix;
+            if (docType === 'profile') { base64Data = driver.photoProfile; filenamePrefix = 'Profil'; }
+            else if (docType === 'license') { base64Data = driver.photoLicense; filenamePrefix = 'Permis'; }
+            else if (docType === 'idcard') { base64Data = driver.photoIdCard; filenamePrefix = 'ID'; }
+            
+            if (!base64Data) return customAlert("Document introuvable.", true);
+            
+            // Extraction de l'extension si possible, par défaut jpg (la compression génère du jpeg)
+            const extension = base64Data.substring(base64Data.indexOf('/') + 1, base64Data.indexOf(';')) === 'png' ? 'png' : 'jpg';
+            
+            const link = document.createElement('a');
+            link.href = base64Data;
+            link.download = `Doc_${filenamePrefix}_${driver.firstName}_${driver.lastName}.${extension}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
         // ==========================================
         // 4. SYSTÈME DE COMPRESSION D'IMAGE ROBUSTE
         // ==========================================
@@ -1192,19 +1214,28 @@
                 content.innerHTML = `
                     <div class="space-y-6">
                         <div>
-                            <h4 class="text-xs text-gray-400 uppercase font-bold mb-2 border-b border-gray-700 pb-1">Photo de profil</h4>
+                            <div class="flex justify-between items-end mb-2 border-b border-gray-700 pb-1">
+                                <h4 class="text-xs text-gray-400 uppercase font-bold">Photo de profil</h4>
+                                ${driver.photoProfile ? `<button onclick="downloadDriverDoc('${driver.id}', 'profile')" class="text-xs bg-blue-500/20 text-blue-400 hover:bg-blue-500/40 px-3 py-1 rounded-lg border border-blue-500/30 transition-colors shadow-sm"><i class="fas fa-download mr-1"></i>Télécharger</button>` : ''}
+                            </div>
                             <div id="imgC-Profile" class="w-full min-h-[100px] flex justify-center items-center bg-gray-800 border border-gray-700 rounded-lg overflow-hidden relative">
                                 ${driver.photoProfile ? '<div class="loader"></div>' : '<p class="text-sm text-gray-500 italic">Non fournie</p>'}
                             </div>
                         </div>
                         <div>
-                            <h4 class="text-xs text-gray-400 uppercase font-bold mb-2 border-b border-gray-700 pb-1">Permis de conduire (${driver.license || 'N/A'})</h4>
+                            <div class="flex justify-between items-end mb-2 border-b border-gray-700 pb-1">
+                                <h4 class="text-xs text-gray-400 uppercase font-bold">Permis de conduire (${driver.license || 'N/A'})</h4>
+                                ${driver.photoLicense ? `<button onclick="downloadDriverDoc('${driver.id}', 'license')" class="text-xs bg-blue-500/20 text-blue-400 hover:bg-blue-500/40 px-3 py-1 rounded-lg border border-blue-500/30 transition-colors shadow-sm"><i class="fas fa-download mr-1"></i>Télécharger</button>` : ''}
+                            </div>
                             <div id="imgC-License" class="w-full min-h-[100px] flex justify-center items-center bg-gray-800 border border-gray-700 rounded-lg overflow-hidden relative">
                                 ${driver.photoLicense ? '<div class="loader"></div>' : '<p class="text-sm text-gray-500 italic">Non fourni</p>'}
                             </div>
                         </div>
                         <div>
-                            <h4 class="text-xs text-gray-400 uppercase font-bold mb-2 border-b border-gray-700 pb-1">Pièce d'identité (${driver.idCard || 'N/A'})</h4>
+                            <div class="flex justify-between items-end mb-2 border-b border-gray-700 pb-1">
+                                <h4 class="text-xs text-gray-400 uppercase font-bold">Pièce d'identité (${driver.idCard || 'N/A'})</h4>
+                                ${driver.photoIdCard ? `<button onclick="downloadDriverDoc('${driver.id}', 'idcard')" class="text-xs bg-blue-500/20 text-blue-400 hover:bg-blue-500/40 px-3 py-1 rounded-lg border border-blue-500/30 transition-colors shadow-sm"><i class="fas fa-download mr-1"></i>Télécharger</button>` : ''}
+                            </div>
                             <div id="imgC-Id" class="w-full min-h-[100px] flex justify-center items-center bg-gray-800 border border-gray-700 rounded-lg overflow-hidden relative">
                                 ${driver.photoIdCard ? '<div class="loader"></div>' : '<p class="text-sm text-gray-500 italic">Non fournie</p>'}
                             </div>
