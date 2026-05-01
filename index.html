@@ -207,7 +207,7 @@
                     </div>
 
                     <!-- Stats Cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                         <div class="glass rounded-2xl p-5 card-hover border border-gray-700/50">
                             <div class="flex justify-between items-start">
                                 <div class="p-3 rounded-xl bg-blue-500/10 w-max mb-2"><i class="fas fa-car text-blue-400 text-xl"></i></div>
@@ -225,6 +225,12 @@
                             <div class="p-3 rounded-xl bg-red-500/10 w-max mb-4"><i class="fas fa-tools text-red-400 text-xl"></i></div>
                             <p class="text-3xl font-bold text-red-400" id="statExpenses">0 F</p>
                             <p class="text-gray-400 text-sm mt-1">Total Dépenses</p>
+                        </div>
+                        <!-- NOUVELLE CARTE: DETTES -->
+                        <div class="glass rounded-2xl p-5 card-hover border border-blue-700/30 bg-blue-900/5">
+                            <div class="p-3 rounded-xl bg-blue-500/10 w-max mb-4"><i class="fas fa-hand-holding-usd text-blue-400 text-xl"></i></div>
+                            <p class="text-3xl font-bold text-blue-400" id="statDebtMain">0 F</p>
+                            <p class="text-gray-400 text-sm mt-1">Dettes (Reste à payer)</p>
                         </div>
                         <div class="glass rounded-2xl p-5 card-hover border border-yango-yellow/30 bg-yango-yellow/5">
                             <div class="p-3 rounded-xl bg-yango-yellow/20 w-max mb-4"><i class="fas fa-chart-line text-yango-yellow text-xl"></i></div>
@@ -954,7 +960,13 @@
         }
 
         function resolveOwnerId() { 
-            return (loggedInUser && loggedInUser.role === 'admin') ? (document.getElementById('formOwnerId') ? document.getElementById('formOwnerId').value : loggedInUser.id) : loggedInUser.id; 
+            if (loggedInUser && loggedInUser.role === 'admin') {
+                const formSelect = document.getElementById('formOwnerId');
+                if (formSelect && formSelect.value !== "") return formSelect.value;
+                if (currentOwnerFilter !== 'all') return currentOwnerFilter;
+                return null;
+            }
+            return loggedInUser.id; 
         }
 
         window.customAlert = function(message, isError = false) {
@@ -1123,7 +1135,8 @@
             
             let ownerSelectHtml = '';
             if(loggedInUser && loggedInUser.role === 'admin') {
-                const opts = users.filter(u => u && u.role !== 'admin').map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+                const preSelect = currentOwnerFilter !== 'all' ? currentOwnerFilter : '';
+                const opts = users.filter(u => u && u.role !== 'admin').map(o => `<option value="${o.id}" ${o.id === preSelect ? 'selected' : ''}>${o.name}</option>`).join('');
                 ownerSelectHtml = `<label class="text-xs text-gray-400">Propriétaire assigné</label><select id="formOwnerId" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white mb-3"><option value="">-- Choisir --</option>${opts}</select>`;
             }
 
@@ -1333,6 +1346,7 @@
                 title.innerHTML = '<i class="fas fa-cogs text-blue-400 mr-2"></i> Annuaire des Pièces & Prix';
                 content.innerHTML = `
                     <form onsubmit="savePart(event)" class="space-y-4">
+                        ${ownerSelectHtml}
                         <div class="grid grid-cols-2 gap-4">
                             <div><label class="text-xs text-gray-400">Date d'achat / Relevé</label><input type="date" id="pDate" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white" value="${new Date().toISOString().split('T')[0]}"></div>
                             <div><label class="text-xs text-gray-400">Nom de la pièce</label><input type="text" id="pName" placeholder="Ex: Plaquettes de frein" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
@@ -1419,6 +1433,7 @@
                 title.innerHTML = '<i class="fas fa-hand-holding-usd text-blue-400 mr-2"></i> Enregistrer une dette ou un crédit';
                 content.innerHTML = `
                     <form onsubmit="saveDebt(event)" class="space-y-4">
+                        ${ownerSelectHtml}
                         <div class="bg-blue-500/10 p-3 border border-blue-500/30 rounded-lg text-xs text-blue-300 mb-2">
                             Ce module enregistre la dette pour suivi. Les dépenses réelles seront générées au moment des paiements (remboursements partiels).
                         </div>
@@ -1773,6 +1788,7 @@
                 title.innerHTML = '<i class="fas fa-tags text-blue-400 mr-2"></i> Ajouter au Catalogue';
                 content.innerHTML = `
                     <form onsubmit="saveCatalog(event)" class="space-y-4">
+                        ${ownerSelectHtml}
                         <div><label class="text-xs text-gray-400">Modèle de Véhicule</label><input type="text" id="cModel" required placeholder="Ex: Suzuki Alto" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white"></div>
                         <div><label class="text-xs text-gray-400">Nom de la pièce & Catégorie</label>
                             <select id="cPart" required class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white">
@@ -1952,7 +1968,8 @@
         window.deleteImmobilization = function(id) { if(!fbUser) return; customConfirm("Supprimer cet historique ?", async () => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'immobilizations', id)); }); };
 
         window.saveDebt = async function(e) {
-            e.preventDefault(); if(!fbUser || !loggedInUser) return; let ownerId = resolveOwnerId(); if(ownerId === 'all') ownerId = loggedInUser.id;
+            e.preventDefault(); if(!fbUser || !loggedInUser) return; 
+            const ownerId = resolveOwnerId(); if(!ownerId) return customAlert("Propriétaire non défini.", true);
             const totalAmount = parseFloat(document.getElementById('debtAmount').value);
             const data = { ownerId: ownerId, creditorName: document.getElementById('debtCreditor').value, type: document.getElementById('debtType').value, vehicle: document.getElementById('debtVehicle').value || "Non spécifié", totalAmount: totalAmount, paidAmount: 0, remainingAmount: totalAmount, date: document.getElementById('debtDate').value, description: document.getElementById('debtDesc').value, status: 'En cours', timestamp: new Date().getTime() };
             await addDoc(getColRef('debts'), data); closeModal();
@@ -1973,7 +1990,8 @@
             e.preventDefault(); if(!fbUser || !loggedInUser) return;
             const plate = document.getElementById('revVehicle').value; let ownerId = null; if(plate) { const veh = vehicles.find(v => v.plate === plate); if(veh) ownerId = veh.ownerId; }
             const driverId = document.getElementById('revDriverId').value; if(!ownerId && driverId) { const drv = drivers.find(d => d.id === driverId); if(drv) ownerId = drv.ownerId; }
-            if(!ownerId) ownerId = (loggedInUser.role === 'admin') ? currentOwnerFilter : loggedInUser.id; if(ownerId === 'all') return customAlert("Sélectionnez un propriétaire, véhicule ou chauffeur.", true);
+            if(!ownerId) ownerId = resolveOwnerId();
+            if(!ownerId) return customAlert("Pour une recette générale, sélectionnez d'abord un propriétaire spécifique dans le filtre en haut (ou liez un véhicule/chauffeur).", true);
             const data = { ownerId: ownerId, date: document.getElementById('revDate').value, vehicle: plate || "Non spécifié", driverId: driverId || null, expected: parseFloat(document.getElementById('revExpected').value) || 0, motif: document.getElementById('revMotif').value, brut: parseFloat(document.getElementById('revBrut').value), paymentMethod: document.getElementById('revMethod').value, paymentRef: document.getElementById('revRef').value, timestamp: new Date().getTime() };
             await addDoc(getColRef('revenues'), data); closeModal();
         };
@@ -1982,7 +2000,8 @@
             e.preventDefault(); if(!fbUser || !loggedInUser) return;
             const plate = document.getElementById('expVehicle').value; let ownerId = null; if(plate) { const veh = vehicles.find(v => v.plate === plate); if(veh) ownerId = veh.ownerId; }
             const driverId = document.getElementById('expDriver').value; if(!ownerId && driverId) { const drv = drivers.find(d => d.id === driverId); if(drv) ownerId = drv.ownerId; }
-            if(!ownerId) ownerId = (loggedInUser.role === 'admin') ? currentOwnerFilter : loggedInUser.id; if(ownerId === 'all') return customAlert("Sélectionnez un propriétaire.", true);
+            if(!ownerId) ownerId = resolveOwnerId();
+            if(!ownerId) return customAlert("Pour une dépense générale, sélectionnez d'abord un propriétaire spécifique dans le filtre en haut (ou liez un véhicule/chauffeur).", true);
             const expMileage = parseInt(document.getElementById('expMileage').value), expNextMileage = parseInt(document.getElementById('expNextMileage').value);
             if (plate && expMileage) { const veh = vehicles.find(v => v.plate === plate); if (veh) { let uData = { currentMileage: expMileage }; if (expNextMileage) uData.nextMaintenanceMileage = expNextMileage; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vehicles', veh.id), uData); } }
             const data = { ownerId: ownerId, date: document.getElementById('expDate').value, vehicle: plate || "Non spécifié", driverId: driverId || null, type: document.getElementById('expType').value, amount: parseFloat(document.getElementById('expAmount').value), description: document.getElementById('expDesc').value, nextVisitDate: document.getElementById('expNextVisit').value || null, paymentMethod: document.getElementById('expMethod').value, paymentRef: document.getElementById('expRef').value, timestamp: new Date().getTime() };
@@ -1991,7 +2010,8 @@
         window.deleteLedgerItem = function(type, id) { if(!fbUser || !loggedInUser) return; if(loggedInUser.role !== 'admin') return customAlert("Seul l'admin peut supprimer une écriture.", true); customConfirm("Supprimer cette opération définitivement ?", async () => { const col = type === 'rev' ? 'revenues' : 'expenses'; await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', col, id)); }); };
 
         window.savePart = async function(e) {
-            e.preventDefault(); if(!fbUser || !loggedInUser) return; let ownerId = resolveOwnerId(); if(ownerId === 'all') ownerId = loggedInUser.id; 
+            e.preventDefault(); if(!fbUser || !loggedInUser) return; 
+            const ownerId = resolveOwnerId(); if(!ownerId) return customAlert("Propriétaire non défini.", true);
             const price = parseFloat(document.getElementById('pPrice').value), qty = parseInt(document.getElementById('pQty').value);
             const data = { ownerId: ownerId, date: document.getElementById('pDate').value, name: document.getElementById('pName').value, brand: document.getElementById('pBrand').value || '', supplier: document.getElementById('pSupplier').value, phone: document.getElementById('pPhone').value || '', location: document.getElementById('pLocation').value || '', price: price, qty: qty, total: price * qty, timestamp: new Date().getTime() };
             await addDoc(getColRef('parts'), data); closeModal();
@@ -2000,7 +2020,8 @@
         window.filterParts = function() { const term = document.getElementById('searchPart').value.toLowerCase(); const rows = document.getElementById('partsTable').getElementsByTagName('tr'); for(let i=0; i<rows.length; i++) { const nameCol = rows[i].getElementsByTagName('td')[1]; if(nameCol) rows[i].style.display = (nameCol.textContent || nameCol.innerText).toLowerCase().indexOf(term) > -1 ? "" : "none"; } };
 
         window.saveCatalog = async function(e) {
-            e.preventDefault(); if(!fbUser || !loggedInUser) return; let ownerId = resolveOwnerId(); if(ownerId === 'all') ownerId = loggedInUser.id; 
+            e.preventDefault(); if(!fbUser || !loggedInUser) return; 
+            const ownerId = resolveOwnerId(); if(!ownerId) return customAlert("Propriétaire non défini.", true);
             const data = { ownerId: ownerId, model: document.getElementById('cModel').value, part: document.getElementById('cPart').value, price: parseFloat(document.getElementById('cPrice').value), timestamp: new Date().getTime() };
             await addDoc(getColRef('catalogs'), data); closeModal();
         };
@@ -2039,6 +2060,10 @@
             document.getElementById('statNet').textContent = globalNet.toLocaleString() + ' F';
             if(globalNet < 0) document.getElementById('statNet').classList.replace('text-yango-yellow', 'text-red-400');
             else document.getElementById('statNet').classList.replace('text-red-400', 'text-yango-yellow');
+
+            // NOUVEAU : Afficher la dette spécifique au propriétaire sur le tableau de bord
+            let sumDebtRemainingDashboard = fDebts.reduce((acc, d) => acc + d.remainingAmount, 0);
+            document.getElementById('statDebtMain').textContent = sumDebtRemainingDashboard.toLocaleString() + ' F';
 
             // DOCUMENTS & ALERTES
             let expiredCount = 0; let warningCount = 0; let validCount = 0;
@@ -2164,7 +2189,8 @@
                 debtTotal += d.totalAmount; debtPaid += d.paidAmount; debtRemaining += d.remainingAmount;
                 let stClass = d.status === 'Soldé' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30';
                 let vehInfo = (d.vehicle && d.vehicle !== "Non spécifié") ? `<div class="text-[10px] text-yango-yellow mt-1"><i class="fas fa-car mr-1"></i> ${d.vehicle}</div>` : '';
-                return `<tr class="hover:bg-white/5 border-b border-gray-700/50 ${d.status === 'Soldé' ? 'opacity-60' : ''}"><td class="px-6 py-4"><div class="font-bold text-white">${d.creditorName}</div><div class="text-[10px] text-gray-500 mt-1">${d.date}</div>${vehInfo}</td><td class="px-6 py-4 text-sm text-gray-300">${d.type}</td><td class="px-6 py-4 text-sm text-gray-400 font-medium">${d.totalAmount.toLocaleString()} F</td><td class="px-6 py-4 text-sm text-green-400 font-bold">${d.paidAmount.toLocaleString()} F</td><td class="px-6 py-4 text-sm text-red-400 font-bold text-lg">${d.remainingAmount.toLocaleString()} F</td><td class="px-6 py-4"><span class="px-2 py-1 rounded text-xs font-bold border ${stClass}">${d.status}</span></td><td class="px-6 py-4 text-right whitespace-nowrap">${d.remainingAmount > 0 ? `<button onclick="openModal('payDebt', '${d.id}')" class="px-3 py-1 bg-green-500/20 text-green-400 border border-green-500/50 rounded hover:bg-green-500/30 text-xs font-bold mr-2"><i class="fas fa-coins mr-1"></i>Payer</button>` : ''}<button onclick="deleteDebt('${d.id}')" class="text-red-400 hover:text-red-300 p-1"><i class="fas fa-trash"></i></button></td></tr>`;
+                let ownerInfo = currentOwnerFilter === 'all' ? `<div class="text-[10px] text-purple-400 uppercase mt-1"><i class="fas fa-user-tie mr-1"></i> ${getOwnerName(d.ownerId)}</div>` : '';
+                return `<tr class="hover:bg-white/5 border-b border-gray-700/50 ${d.status === 'Soldé' ? 'opacity-60' : ''}"><td class="px-6 py-4"><div class="font-bold text-white">${d.creditorName}</div><div class="text-[10px] text-gray-500 mt-1">${d.date}</div>${vehInfo}${ownerInfo}</td><td class="px-6 py-4 text-sm text-gray-300">${d.type}</td><td class="px-6 py-4 text-sm text-gray-400 font-medium">${d.totalAmount.toLocaleString()} F</td><td class="px-6 py-4 text-sm text-green-400 font-bold">${d.paidAmount.toLocaleString()} F</td><td class="px-6 py-4 text-sm text-red-400 font-bold text-lg">${d.remainingAmount.toLocaleString()} F</td><td class="px-6 py-4"><span class="px-2 py-1 rounded text-xs font-bold border ${stClass}">${d.status}</span></td><td class="px-6 py-4 text-right whitespace-nowrap">${d.remainingAmount > 0 ? `<button onclick="openModal('payDebt', '${d.id}')" class="px-3 py-1 bg-green-500/20 text-green-400 border border-green-500/50 rounded hover:bg-green-500/30 text-xs font-bold mr-2"><i class="fas fa-coins mr-1"></i>Payer</button>` : ''}<button onclick="deleteDebt('${d.id}')" class="text-red-400 hover:text-red-300 p-1"><i class="fas fa-trash"></i></button></td></tr>`;
             }).join('') || `<tr><td colspan="7" class="text-center py-6 text-gray-500">Aucune dette enregistrée.</td></tr>`;
             document.getElementById('debtTotalAmount').textContent = debtTotal.toLocaleString() + ' F'; document.getElementById('debtPaidAmount').textContent = debtPaid.toLocaleString() + ' F'; document.getElementById('debtRemainingAmount').textContent = debtRemaining.toLocaleString() + ' F';
 
